@@ -230,7 +230,7 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
       const quickieSnap = await getDoc(quickieDocRef);
   
       if (quickieSnap.exists()) {
-        const originalPosterId = quickieSnap.data().user || "";  // Get original poster's user ID
+        const originalPosterId = quickieSnap.data().userId || "";  // Get original poster's userId
         const quickieContentType = quickieSnap.data().type || "Text";  // Get the type of content, default to "Text"
         const quickieContent = quickieSnap.data().text || "No content provided";  // Explicitly get the 'text' field
   
@@ -244,11 +244,12 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
             comments: arrayUnion({
               date: new Date(),
               message: reportMessage,
-              user: auth.currentUser.uid
+              user: auth.currentUser.uid  // User who is reporting
             }),
             numReports: increment(1),
             content: quickieContent,  // Copy the actual text content of the quickie
             type: quickieContentType,  // Set the type based on the quickie content
+            user: originalPosterId  // Set the original poster's userId
           });
         } else {
           // If report doesn't exist, create a new one
@@ -256,14 +257,14 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
             comments: [{
               date: new Date(),
               message: reportMessage,
-              user: auth.currentUser.uid
+              user: auth.currentUser.uid  // User who is reporting
             }],
             numReports: 1,
             rejectReason: "",
             status: "Pending",
             type: quickieContentType,  // Set the type of content (e.g., Text/Image/Video)
             content: quickieContent,  // Set the content of the quickie explicitly from 'text'
-            user: originalPosterId  // The original poster's user ID
+            user: originalPosterId  // The original poster's userId
           });
         }
       } else {
@@ -275,8 +276,6 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
       toast.error("There was an issue submitting your report.");
     }
   };
-  
-  
   
   
   return (
