@@ -13,11 +13,12 @@ import 'bootstrap/dist/css/bootstrap.min.css'; // Bootstrap 5 CSS
 import { displayError } from "../../utils"; // Errors (that will be displayed as a notification)
 import useInput from "../../hooks/useInput"; // User input
 import '../../styles/Login.css' // Specific Styles for Login.CSS
+import HexagonBox from "../ui/HexagonBox";
 
 // Adjust the path if necessary
 const companyLogo = "/companyLogo.png";
 
-export default ({ changeToSignup }) => {
+const SignIn = ({ changeToSignup }) => {
   const email = useInput("");
   const password = useInput("");
   const auth = getAuth();
@@ -135,54 +136,52 @@ export default ({ changeToSignup }) => {
         </Col>
   
         {/* Form Column */}
-        <Col xs={12} md={6} id="verticalHexagon">
-          <Form onSubmit={handleLogin}>
-            <h2 className="text-center mb-4" style={{ fontSize: "3rem", fontWeight: "bold" }}>Log In</h2>
-            
-            {/* First factor: email and password */}
-            <Form.Group className="mb-3">
-              <Form.Label>Email</Form.Label>
-              <Form.Control className="customInput" type="email" placeholder="Enter email" value={email.value} onChange={email.onChange} />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Password</Form.Label>
-              <Form.Control className="customInput" type="password" placeholder="Enter password" value={password.value} onChange={password.onChange} />
-            </Form.Group>
-  
-            <Button type="submit" className="w-100 btn loginButton">Sign In</Button>
-  
-            {/* reCAPTCHA container for 2FA */}
-            <div id="recaptcha-container"></div>
-  
-            {/* Second factor authentication (2FA): send and verify SMS code */}
-            {resolver && (
-              <>
-                <Button onClick={sendVerificationCode} className="mt-3">Send Verification Code</Button>
-                <Form.Group className="mt-3">
-                  <Form.Label>Verification Code</Form.Label>
-                  <Form.Control 
-                    type="text"
-                    placeholder="Enter the verification code"
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                  />
-                </Form.Group>
-                <Button onClick={verifyCode} className="mt-3">Verify</Button>
-              </>
-            )}
-  
-            <div className="text-center mt-3">
-              <span className="text-white" style={{ cursor: "pointer" }} onClick={handleForgotPassword}>Forgot Password?</span>
-            </div>
-            <div className="text-center mt-2">
-              <span className="text-white" style={{ cursor: "pointer" }} onClick={changeToSignup}>Create New Account?</span>
-            </div>
-          </Form>
+        <Col xs={12} md={6}>
+          <HexagonBox backgroundColor="rgb(114, 0, 0)" textColor="white" padding="6rem 5rem">
+            <Form onSubmit={handleLogin} className="signin-form">
+              <h2 className="text-center mb-3" style={{ fontSize: "2rem", fontWeight: "bold" }}>Log In</h2>
+              
+              <Form.Group className="mb-2">
+                <Form.Label>Email</Form.Label>
+                <Form.Control className="customInput" type="email" placeholder="Enter email" value={email.value} onChange={email.onChange} />
+              </Form.Group>
+              <Form.Group className="mb-2">
+                <Form.Label>Password</Form.Label>
+                <Form.Control className="customInput" type="password" placeholder="Enter password" value={password.value} onChange={password.onChange} />
+              </Form.Group>
+    
+              <Button type="submit" className="w-100 btn loginButton mt-2">Sign In</Button>
+    
+              <div id="recaptcha-container"></div>
+    
+              {resolver && (
+                <>
+                  <Button onClick={sendVerificationCode} className="mt-2 w-100">Send Verification Code</Button>
+                  <Form.Group className="mt-2">
+                    <Form.Label>Verification Code</Form.Label>
+                    <Form.Control 
+                      type="text"
+                      placeholder="Enter the verification code"
+                      value={code}
+                      onChange={(e) => setCode(e.target.value)}
+                    />
+                  </Form.Group>
+                  <Button onClick={verifyCode} className="mt-2 w-100">Verify</Button>
+                </>
+              )}
+    
+              <div className="text-center mt-2">
+                <span style={{ cursor: "pointer", fontSize: "0.9rem" }} onClick={handleForgotPassword}>Forgot Password?</span>
+              </div>
+              <div className="text-center mt-1">
+                <span style={{ cursor: "pointer", fontSize: "0.9rem" }} onClick={changeToSignup}>Create New Account?</span>
+              </div>
+            </Form>
+          </HexagonBox>
         </Col>
       </Row>
     </Container>
   );
-  
-  
-
 };
+
+export default SignIn;
