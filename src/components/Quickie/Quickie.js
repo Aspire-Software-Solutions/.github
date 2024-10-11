@@ -231,7 +231,8 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
   
       if (quickieSnap.exists()) {
         const originalPosterId = quickieSnap.data().user || "";  // Get original poster's user ID
-        const quickieContentType = quickieSnap.data().type || "unknown";  // Get the type of content
+        const quickieContentType = quickieSnap.data().type || "Text";  // Get the type of content, default to "Text"
+        const quickieContent = quickieSnap.data().content || "No content provided";  // Get the actual content of the quickie
   
         const reportSnap = await getDoc(reportDocRef);
   
@@ -245,7 +246,9 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
               message: reportMessage,
               user: auth.currentUser.uid
             }),
-            numReports: increment(1)
+            numReports: increment(1),
+            content: quickieContent,  // Copy the actual content of the quickie
+            type: quickieContentType,  // Set the type based on the quickie content
           });
         } else {
           // If report doesn't exist, create a new one
@@ -258,8 +261,9 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
             numReports: 1,
             rejectReason: "",
             status: "Pending",
-            type: quickieContentType,  // Type of content
-            user: originalPosterId  // The original poster
+            type: quickieContentType,  // Set the type of content (e.g., Text/Image/Video)
+            content: quickieContent,  // Set the content of the quickie
+            user: originalPosterId  // The original poster's user ID
           });
         }
       } else {
@@ -271,6 +275,7 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
       toast.error("There was an issue submitting your report.");
     }
   };
+  
   
   
   return (
