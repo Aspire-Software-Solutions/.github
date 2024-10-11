@@ -4,12 +4,13 @@ import styled from "styled-components";
 import moment from "moment";
 import DeleteQuickie from "./DeleteQuickie";
 import LikeQuickie from "./LikeQuickie";
-import { BmIcon, BmFillIcon, CommentIcon } from "../Icons";
+import { BmIcon, BmFillIcon, CommentIcon, DangerIcon } from "../Icons.js";
 import Avatar from "../../styles/Avatar";
 import QuickieFile from "../../styles/QuickieFile";
 import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, increment, getDoc } from "firebase/firestore"; // Firestore imports
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import { toast } from "react-toastify";
+import Modal from "../Modal";
 
 const Wrapper = styled.div`
   display: flex;
@@ -91,6 +92,16 @@ const Wrapper = styled.div`
   }
 `;
 
+const ReportButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${(props) => props.theme.dangerColor}; // Assuming you have a danger color in your theme
+  display: flex;
+  align-items: center;
+  margin-left: 1rem;
+`;
+
 const Quickie = ({ quickie }) => {
   const {
     id,
@@ -113,6 +124,7 @@ const Quickie = ({ quickie }) => {
   const db = getFirestore();
   const auth = getAuth();
   const currentUser = auth.currentUser;
+  const [isModalOpen, setModalOpen] = useState(false);
 
   // Initialize the like status and likes count on component mount
   useEffect(() => {
@@ -194,6 +206,17 @@ const Quickie = ({ quickie }) => {
   const strList = text.split(" ");
   const processedText = strList.filter((str) => !str.startsWith("#")).join(" ");
 
+  // Handler to toggle the modal
+  const handleReportClick = () => {
+    setModalOpen(true);
+  };
+
+  // Handler to close the modal
+  const handleCloseModal = () => {
+    setModalOpen(false);
+  };
+
+
   return (
     <Wrapper>
       <Link to={`/${handle}`}>
@@ -263,7 +286,21 @@ const Quickie = ({ quickie }) => {
               )}
           </div>
 
+          {/* Add the Report Button */}
+          <ReportButton onClick={handleReportClick}>
+            <DangerIcon /> {/* Assuming you have a "danger" styled icon */}
+            <span>Report</span>
+          </ReportButton>
         </div>
+
+        {/* Modal */}
+        {isModalOpen && (
+          <Modal onClose={handleCloseModal}>
+            <h2>Report Quickie</h2>
+            <p>This is where the report functionality will go.</p>
+            <button onClick={handleCloseModal}>Close</button>
+          </Modal>
+        )}
       </div>
     </Wrapper>
   );
