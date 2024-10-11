@@ -218,44 +218,61 @@ const Quickie = ({ quickie, quickieId, quickieData }) => {
 
   // Firestore submission logic
   const handleSubmitReport = async (reportMessage) => {
-    const reportDocRef = doc(db, "reports", quickieId);  // Reports stored by quickie ID
-    const quickieDocRef = doc(db, "quickies", quickieId);  // Quickie doc reference
-    const quickieSnap = await getDoc(quickieDocRef);  // Fetch the original quickie
-
-    if (quickieSnap.exists()) {
-      const originalPosterId = quickieSnap.data().user;  // Get original poster's user ID
-      const quickieContentType = quickieSnap.data().type;  // Get the type of content (e.g., text/image/video)
-
-      const reportSnap = await getDoc(reportDocRef);
-
-      if (reportSnap.exists()) {
-        // If report already exists, update it
-        await updateDoc(reportDocRef, {
-          comments: [...reportSnap.data().comments, {
-            date: new Date(),
-            message: reportMessage,
-            user: auth.currentUser.uid
-          }],
-          numReports: increment(1)
-        });
-      } else {
-        // If report doesn't exist, create a new one
-        await setDoc(reportDocRef, {
-          comments: [{
-            date: new Date(),
-            message: reportMessage,
-            user: auth.currentUser.uid
-          }],
-          numReports: 1,
-          rejectReason: "",
-          status: "Pending",
-          type: quickieContentType,  // Type of content (text/image/video)
-          user: originalPosterId  // The original poster
-        });
+    try {
+      if (!id) {
+        console.error("Quickie ID is undefined");
+        return;
       }
+  
+      const reportDocRef = doc(db, "reports", id);  // Use the Quickie ID
+      const quickieDocRef = doc(db, "quickies", id);  // Fetch the original quickie
+      
+      const quickieSnap = await getDoc(quickieDocRef);
+  
+      if (quickieSnap.exists()) {
+        const originalPosterId = quickieSnap.data().user || "";  // Get original poster's user ID
+        const quickieContentType = quickieSnap.data().type || "unknown";  // Get the type of content
+  
+        const reportSnap = await getDoc(reportDocRef);
+  
+        if (reportSnap.exists()) {
+          const comments = reportSnap.data().comments || [];  // Ensure comments is an array
+  
+          // Append the new comment and increment numReports
+          await updateDoc(reportDocRef, {
+            comments: arrayUnion({
+              date: new Date(),
+              message: reportMessage,
+              user: auth.currentUser.uid
+            }),
+            numReports: increment(1)
+          });
+        } else {
+          // If report doesn't exist, create a new one
+          await setDoc(reportDocRef, {
+            comments: [{
+              date: new Date(),
+              message: reportMessage,
+              user: auth.currentUser.uid
+            }],
+            numReports: 1,
+            rejectReason: "",
+            status: "Pending",
+            type: quickieContentType,  // Type of content
+            user: originalPosterId  // The original poster
+          });
+        }
+      } else {
+        console.error("Quickie document not found");
+        toast.error("Quickie document not found.");
+      }
+    } catch (error) {
+      console.error("Error submitting report:", error);  // Log the error for further inspection
+      toast.error("There was an issue submitting your report.");
     }
   };
-
+  
+  
   return (
     <Wrapper>
       <Link to={`/${handle}`}>
