@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 
+// Modal styles
 const ModalWrapper = styled.div`
   position: fixed;
   top: 0;
@@ -16,7 +17,7 @@ const ModalWrapper = styled.div`
 
 const ModalContent = styled.div`
   background: white;
-  color: black;
+  color: black; 
   padding: 2rem;
   border-radius: 8px;
   width: 400px;
@@ -34,12 +35,38 @@ const CloseButton = styled.button`
   cursor: pointer;
 `;
 
-const Modal = ({ children, onClose }) => {
+const SubmitButton = styled.button`
+  background-color: red;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+  border-radius: 5px;
+`;
+
+const Modal = ({ onClose, onSubmit }) => {
+  const [reportMessage, setReportMessage] = useState("");
+
+  const handleSubmit = () => {
+    onSubmit(reportMessage);  // Pass the message to the parent component for Firestore handling
+    setReportMessage("");
+    onClose(); // Close the modal after submission
+  };
+
   return (
     <ModalWrapper>
       <ModalContent>
         <CloseButton onClick={onClose}>&times;</CloseButton>
-        {children}
+        <h2>Report Content</h2>
+        <textarea
+          placeholder="Why are you reporting this?"
+          value={reportMessage}
+          onChange={(e) => setReportMessage(e.target.value)}
+          rows="4"
+          style={{ width: "100%", padding: "10px" }}
+        />
+        <SubmitButton onClick={handleSubmit}>Submit Report</SubmitButton>
       </ModalContent>
     </ModalWrapper>
   );

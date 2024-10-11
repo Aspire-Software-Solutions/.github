@@ -7,7 +7,7 @@ import LikeQuickie from "./LikeQuickie";
 import { BmIcon, BmFillIcon, CommentIcon, DangerIcon } from "../Icons.js";
 import Avatar from "../../styles/Avatar";
 import QuickieFile from "../../styles/QuickieFile";
-import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, increment, getDoc } from "firebase/firestore"; // Firestore imports
+import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, increment, getDoc, setDoc } from "firebase/firestore"; // Firestore imports
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import { toast } from "react-toastify";
 import Modal from "../Modal";
@@ -102,7 +102,7 @@ const ReportButton = styled.button`
   margin-left: 1rem;
 `;
 
-const Quickie = ({ quickie }) => {
+const Quickie = ({ quickie, quickieId, quickieData }) => {
   const {
     id,
     text,
@@ -216,6 +216,45 @@ const Quickie = ({ quickie }) => {
     setModalOpen(false);
   };
 
+  // Firestore submission logic
+  const handleSubmitReport = async (reportMessage) => {
+    const reportDocRef = doc(db, "reports", quickieId);  // Reports stored by quickie ID
+    const quickieDocRef = doc(db, "quickies", quickieId);  // Quickie doc reference
+    const quickieSnap = await getDoc(quickieDocRef);  // Fetch the original quickie
+
+    if (quickieSnap.exists()) {
+      const originalPosterId = quickieSnap.data().user;  // Get original poster's user ID
+      const quickieContentType = quickieSnap.data().type;  // Get the type of content (e.g., text/image/video)
+
+      const reportSnap = await getDoc(reportDocRef);
+
+      if (reportSnap.exists()) {
+        // If report already exists, update it
+        await updateDoc(reportDocRef, {
+          comments: [...reportSnap.data().comments, {
+            date: new Date(),
+            message: reportMessage,
+            user: auth.currentUser.uid
+          }],
+          numReports: increment(1)
+        });
+      } else {
+        // If report doesn't exist, create a new one
+        await setDoc(reportDocRef, {
+          comments: [{
+            date: new Date(),
+            message: reportMessage,
+            user: auth.currentUser.uid
+          }],
+          numReports: 1,
+          rejectReason: "",
+          status: "Pending",
+          type: quickieContentType,  // Type of content (text/image/video)
+          user: originalPosterId  // The original poster
+        });
+      }
+    }
+  };
 
   return (
     <Wrapper>
@@ -295,12 +334,11 @@ const Quickie = ({ quickie }) => {
 
         {/* Modal */}
         {isModalOpen && (
-          <Modal onClose={handleCloseModal}>
-            <h2>Report Quickie</h2>
-            <p>This is where the report functionality will go.</p>
-            <button onClick={handleCloseModal}>Close</button>
-          </Modal>
-        )}
+        <Modal 
+          onClose={handleCloseModal} 
+          onSubmit={handleSubmitReport}  // Pass the Firestore handler to the modal
+        />
+      )}
       </div>
     </Wrapper>
   );
