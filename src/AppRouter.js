@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
+import { getAuth } from "firebase/auth";
+import { getFirestore, doc, getDoc, updateDoc } from "firebase/firestore";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import Layout from "./styles/Layout";
 import Nav from "./components/layout/Nav";
 import Home from "./pages/Home";
@@ -11,8 +14,6 @@ import Explore from "./pages/Explore";
 import Suggestion from "./pages/Suggestion";
 import EditProfile from "./components/Profile/EditProfile";
 import ModerationDashboard from "./pages/ContentModeration";
-import { getAuth } from "firebase/auth";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 const AppRouter = () => {
   const auth = getAuth();
@@ -20,6 +21,7 @@ const AppRouter = () => {
   const [isAdmin, setIsAdmin] = useState(false); // Store isAdmin state
   const [isProfileLoaded, setIsProfileLoaded] = useState(false); // Check if profile is loaded
   const db = getFirestore(); // Initialize Firestore
+  const messaging = getMessaging(); // Initialize FCM (Firebase Cloud Messaging)
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -29,18 +31,34 @@ const AppRouter = () => {
           const profileSnap = await getDoc(profileRef);
           if (profileSnap.exists()) {
             const profileData = profileSnap.data();
-            setIsAdmin(profileData.isAdmin || false); // Set isAdmin if available
+            setIsAdmin(profileData.isAdmin || false);
+
+            // Check the user's moderation status and show a pop-up
+            const reportRef = doc(db, 'reports', user.uid); // Assuming 'reports' is where moderation data is stored
+            const reportSnap = await getDoc(reportRef);
+            if (reportSnap.exists()) {
+              const reportData = reportSnap.data();
+              if (reportData.status === 'Rejected') {
+                alert(`Your content was rejected. Reason: ${reportData.rejectReason}`);
+              } else if (reportData.status === 'Approved') {
+                alert('Your content was approved.');
+              }
+            }
           } else {
             console.log("No profile found!");
           }
-          setIsProfileLoaded(true); // Set profile as loaded
+          setIsProfileLoaded(true); // Mark profile as loaded
         } catch (error) {
-          console.error("Error fetching profile:", error);
+          console.error("Error fetching profile or report:", error);
         }
       }
     };
     fetchProfile();
   }, [user, db]);
+
+  if (!isProfileLoaded) {
+    return <div>Loading...</div>;
+  }
 
   // Only render Nav and Routes when profile is loaded to avoid flashing the wrong UI state
   if (!isProfileLoaded) {
