@@ -18,7 +18,8 @@ import HexagonBox from "../ui/HexagonBox";
 // Adjust the path if necessary
 const companyLogo = "/companyLogo.png";
 
-const SignIn = ({ changeToSignup }) => {
+
+export default ({ changeToSignup, changeToForgotPass}) => {
   const email = useInput("");
   const password = useInput("");
   const auth = getAuth();
@@ -124,7 +125,7 @@ const SignIn = ({ changeToSignup }) => {
   };
 
   const handleForgotPassword = () => {
-    toast.info("Redirecting to password reset page...");
+    changeToForgotPass();
   };
 
   return (

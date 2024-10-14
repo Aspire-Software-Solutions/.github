@@ -7,7 +7,7 @@
 | Member | Ethan Tarrer         | etarrer@gmail.com              | 
 | Member | Chloe Nguyen         | nnttruc2609@gmail.com          | 
 | Member | Mia Felipe           | mlfelipe@cpp.edu               |
-| Member | Denise               | denthu305@gmail.com            |
+| Member | Denise Thuong              | denthu305@gmail.com            |
 
 ## Project Information
 
