@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { toast } from "react-toastify";
 import TextareaAutosize from "react-textarea-autosize";
@@ -20,9 +20,9 @@ const Wrapper = styled.div`
     width: 100%;
     background: inherit;
     border: none;
-    font-size: 1.23rem; /* Match the Quickie input font size */
-    font-family: ${(props) => props.theme.font}; /* Match the Quickie input font family */
-    color: ${(props) => props.theme.primaryColor}; /* Match the color from Quickie input */
+    font-size: 1.23rem;
+    font-family: ${(props) => props.theme.font};
+    color: ${(props) => props.theme.primaryColor};
     margin-bottom: 1.4rem;
     padding: 0.5rem;
   }
@@ -49,14 +49,32 @@ const Wrapper = styled.div`
 
 const AddComment = ({ id }) => {
   const comment = useInput("");
+  const [userAvatar, setUserAvatar] = useState(defaultAvatarUrl); // State to track avatar
   const db = getFirestore(); // Initialize Firestore
   const auth = getAuth(); // Get Firebase Auth instance
 
+  // Fetch user's avatar from Firestore on mount
+  useEffect(() => {
+    const fetchUserAvatar = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userRef = doc(db, "profiles", user.uid);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          setUserAvatar(userData.avatarUrl || defaultAvatarUrl); // Ensure avatarUrl is used
+        }
+      }
+    };
+    fetchUserAvatar();
+  }, [auth, db]);
+
   const handleAddComment = async (e) => {
     e.preventDefault();
-  
+
     if (!comment.value) return toast.error("Reply something");
-  
+
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -77,22 +95,21 @@ const AddComment = ({ id }) => {
           text: comment.value,
           userId: user.uid,
           userName: user.displayName,
-          userAvatar: user.photoURL || defaultAvatarUrl,
+          userAvatar: userAvatar, // Use the updated avatar
           handle: handle, // Include the user's handle in the comment
           createdAt: new Date(),
         }),
         commentsCount: increment(1), // Correctly increment the comment count
       });
-  
+
       toast.success("Your reply has been added");
     } catch (err) {
       return displayError(err);
     }
-  
+
     comment.setValue(""); // Clear the input after successful submission
   };
 
-  // Get the current user from Firebase Auth
   const user = auth.currentUser;
 
   if (!user) {
@@ -101,13 +118,13 @@ const AddComment = ({ id }) => {
 
   return (
     <Wrapper>
-     <Avatar src={user.photoURL || defaultAvatarUrl} alt="avatar" />
+      <Avatar src={userAvatar} alt="avatar" /> {/* Use Firestore Avatar */}
 
       <form onSubmit={handleAddComment}>
         <div className="add-comment">
           <TextareaAutosize
             cols="48"
-            placeholder="Reply with a quickie!"
+            placeholder="Reply with an attack!"
             type="text"
             value={comment.value}
             onChange={comment.onChange}

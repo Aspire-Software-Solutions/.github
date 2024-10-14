@@ -9,9 +9,8 @@ import { LinkIcon } from "../Icons"; // Removed LocationIcon and DobIcon since w
 import CustomResponse from "../CustomResponse";
 import { getAuth } from "firebase/auth";
 
-
 const defaultAvatarUrl = "/default-avatar.png";
-const defaultCoverPhotoUrl = "/default-cover-photo.png"; 
+const defaultCoverPhotoUrl = "/default-cover-photo.png";
 
 const Wrapper = styled.div`
   border-bottom: 1px solid ${(props) => props.theme.tertiaryColor};
@@ -61,12 +60,26 @@ const Wrapper = styled.div`
       position: relative;
       top: 3px;
     }
+    
+    &:hover {
+      color: ${(props) => props.theme.accentColor}; /* Change color on hover */
+    }
   }
 
   div.follow-following {
     color: ${(props) => props.theme.secondaryColor};
     span {
       margin-right: 1.3rem;
+    }
+
+    .followers-link, .following-link {
+      cursor: pointer;
+      text-decoration: none;
+      color: ${(props) => props.theme.secondaryColor}; /* Style the link */
+
+      &:hover {
+        color: ${(props) => props.theme.accentColor}; /* Change color on hover */
+      }
     }
   }
 
@@ -83,7 +96,6 @@ const Wrapper = styled.div`
 `;
 
 const ProfileInfo = ({ profile }) => {
-
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
@@ -152,12 +164,14 @@ const ProfileInfo = ({ profile }) => {
 
         <div className="follow-following">
           <span>
-            {followersCount ? `${followersCount} followers` : "No followers"}
+            <Link to={`/${handle}/followers`} className="followers-link">
+              {followersCount ? `${followersCount} followers` : "No followers"}
+            </Link>
           </span>
           <span>
-            {followingCount
-              ? `${followingCount} following`
-              : "Not following anyone"}
+            <Link to={`/${handle}/following`} className="following-link">
+              {followingCount ? `${followingCount} following` : "Not following anyone"}
+            </Link>
           </span>
         </div>
       </div>
