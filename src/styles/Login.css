@@ -24,20 +24,77 @@
     filter: drop-shadow(16px 16px);
 }
 
-#verticalHexagonSignup {
+.hexagon-box {
+    color: var(--text-color, white);
+    background: var(--background-color, rgb(114, 0, 0));
+    width: auto;
+    height: auto;
+    max-width: var(--max-width, 90vw);
+    max-height: var(--max-height, 90vh);
+    min-width: 300px;
+    min-height: 400px;
+    clip-path: polygon(50% 2%, 96% 20%, 96% 80%, 50% 98%, 4% 80%, 4% 20%);
     position: relative;
-    width: 100%;
-    max-width: 600px; /* Set a reasonable maximum width */
-    margin: 2rem auto; /* Center it and add spacing above and below */
-    background: #720000;
-    padding: 2rem; /* Internal padding for content */
-    box-sizing: border-box;
+    padding: var(--padding, 2rem 1.5rem);
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    transform: rotate(0deg); /* Keep the hexagon oriented upright */
-    overflow: hidden;
+    justify-content: flex-start;
+    overflow: auto;
+    transition: transform 0.3s, box-shadow 0.3s;
+    box-sizing: border-box;
+    filter: drop-shadow(16px 16px);
+}
+
+@media (max-width: 768px) {
+  .hexagon-box {
+    padding: 1.5rem 1rem;
+    min-height: 350px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hexagon-box {
+    padding: 1rem 0.75rem;
+    min-height: 300px;
+  }
+}
+
+.signin-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.signin-form h2 {
+  margin-bottom: 1rem;
+}
+
+.signin-form .form-group {
+  margin-bottom: 0.75rem;
+}
+
+.signin-form .form-label {
+  font-size: 0.9rem;
+  margin-bottom: 0.2rem;
+}
+
+.signin-form .form-control {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.signin-form .btn {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.signin-form .text-center {
+  margin-top: 0.5rem;
+}
+
+.signin-form .text-center span {
+  font-size: 0.8rem;
 }
 
 #verticalHexagonWrapper {
