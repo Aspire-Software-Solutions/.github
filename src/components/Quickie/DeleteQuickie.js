@@ -18,7 +18,7 @@ const DeleteQuickie = ({ id }) => {
     }
 
     // Ask for confirmation before deletion
-    const confirmDelete = window.confirm("Are you sure you want to delete this quickie?");
+    const confirmDelete = window.confirm("Are you sure you want to delete this attack?");
     if (!confirmDelete) return; // Exit if user cancels
 
     const quickieRef = doc(db, "quickies", id);
@@ -39,13 +39,13 @@ const DeleteQuickie = ({ id }) => {
         // Delete the quickie from Firestore
         await deleteDoc(quickieRef);
 
-        toast.success("Your quickie has been deleted");
+        toast.success("Your attack has been deleted");
       } else {
-        toast.error("Quickie not found.");
+        toast.error("Attack not found.");
       }
     } catch (error) {
-      toast.error("Failed to delete quickie.");
-      console.error("Error deleting quickie:", error);
+      toast.error("Failed to delete attack.");
+      console.error("Error deleting attack:", error);
     }
   };
 

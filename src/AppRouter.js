@@ -13,8 +13,10 @@ import Profile from "./components/Profile/Profile";
 import Bookmarks from "./pages/Bookmarks";
 import Notifications from "./pages/Notifications";
 import Explore from "./pages/Explore";
-import Suggestion from "./pages/Suggestion";
 import EditProfile from "./components/Profile/EditProfile";
+import FollowersFollowing from "./components/Profile/FollowersFollowing";
+import ConversationsList from "./components/Conversations/ConversationsList";
+import ConversationDetail from "./components/Conversations/ConversationDetail";
 
 const AppRouter = () => {
   return (
@@ -26,15 +28,17 @@ const AppRouter = () => {
           <Route exact path="/explore" component={Explore} />
           <Route exact path="/notifications" component={Notifications} />
           <Route exact path="/bookmarks" component={Bookmarks} />
+          <Route exact path="/conversations" component={ConversationsList} />
+          <Route exact path="/conversations/:conversationId" component={ConversationDetail} />
           <Route
             exact path={`/:handle/status/:quickieId`} // Renamed for consistency
             component={MasterQuickie} // Renamed for consistency
           />
           <Route exact path={`/settings/profile`} component={EditProfile} />
           <Route exact path={`/:handle`} component={Profile} />
+          <Route exact path={`/:handle/:type`} component={FollowersFollowing} />
           <Redirect from="*" to="/" />
         </Switch>
-        <Suggestion />
       </Layout>
     </Router>
   );
