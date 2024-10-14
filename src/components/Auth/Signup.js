@@ -35,6 +35,7 @@ const SignUp = ({ changeToLogin }) => {
     number: false,
     special: false,
   });
+  const [passwordsMatch, setPasswordsMatch] = useState(true); // Add state for password matching
 
   const inputStyle = {
     height: '32px',
@@ -73,6 +74,10 @@ const SignUp = ({ changeToLogin }) => {
     const strength = Object.values(requirements).filter(Boolean).length;
     setPasswordStrength(strength * 20);
   };
+
+  useEffect(() => {
+    setPasswordsMatch(password === confirmPassword);
+  }, [password, confirmPassword]);
 
   const sendVerificationCode = async () => {
     if (!phoneNumber) {
@@ -284,6 +289,7 @@ const SignUp = ({ changeToLogin }) => {
               className="w-60"
               onClick={sendVerificationCode}
               style={{height: '32px', fontSize: '0.9rem', padding: '0.25rem 0.5rem'}}
+              disabled={!passwordsMatch}  // Disable the button if passwords don't match
             >
               Send Verification Code
             </Button>
@@ -305,6 +311,7 @@ const SignUp = ({ changeToLogin }) => {
                 type="submit" 
                 className="w-60"
                 style={{height: '32px', fontSize: '0.9rem', padding: '0.25rem 0.5rem'}}
+                disabled={!passwordsMatch}  // Disable the button if passwords don't match
               >
                 Verify and Sign Up
               </Button>
