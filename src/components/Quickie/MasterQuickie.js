@@ -7,7 +7,7 @@ import Quickie from "./Quickie";
 import Comment from "../Comment/Comment";
 import AddComment from "../Comment/AddComment";
 import CustomResponse from "../CustomResponse";
-import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firestore
+import { getFirestore, doc, onSnapshot } from "firebase/firestore"; // Firestore imports for real-time
 import { sortFn } from "../../utils";
 
 const Wrapper = styled.div`
@@ -22,41 +22,33 @@ const MasterQuickie = () => {
   const db = getFirestore(); // Firestore instance
 
   useEffect(() => {
-    const fetchQuickieData = async () => {
-      setLoading(true);
+    const quickieRef = doc(db, "quickies", quickieId);
 
-      try {
-        // Fetch the quickie document
-        const quickieRef = doc(db, "quickies", quickieId);
-        const quickieSnap = await getDoc(quickieRef);
+    // Real-time listener for the quickie and its comments
+    const unsubscribe = onSnapshot(quickieRef, (quickieSnap) => {
+      if (quickieSnap.exists()) {
+        const quickie = quickieSnap.data();
 
-        if (quickieSnap.exists()) {
-          const quickie = quickieSnap.data();
+        // Set quickie data
+        setQuickieData({ id: quickieId, ...quickie });
 
-          // Set quickie data
-          setQuickieData({ id: quickieId, ...quickie });
-
-          // Fetch the comments array directly from the quickie document
-          const commentsArray = quickie.comments || []; // Use an empty array if no comments exist
-          setComments(commentsArray.sort(sortFn)); // Sort the comments by createdAt
-        } else {
-          setQuickieData(null);
-        }
-      } catch (error) {
-        console.error("Error fetching quickie or comments:", error);
+        // Fetch the comments array directly from the quickie document
+        const commentsArray = quickie.comments || []; // Use an empty array if no comments exist
+        setComments(commentsArray.sort(sortFn)); // Sort the comments by createdAt
+      } else {
         setQuickieData(null);
-      } finally {
-        setLoading(false);
       }
-    };
+      setLoading(false);
+    });
 
-    fetchQuickieData();
+    // Cleanup listener on component unmount
+    return () => unsubscribe();
   }, [quickieId, db]);
 
   return (
     <Wrapper>
       <Header>
-        <span>Quickie</span>
+        <span>Attack</span>
       </Header>
       {loading ? (
         <Loader />
@@ -75,7 +67,7 @@ const MasterQuickie = () => {
               )}
             </>
           ) : (
-            <CustomResponse text="Oops, the quickie you are looking for doesn't seem to exist." />
+            <CustomResponse text="Oops, the attack you are looking for doesn't seem to exist." />
           )}
         </>
       )}
