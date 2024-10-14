@@ -172,10 +172,14 @@ export default ({ changeToSignup }) => {
             )}
   
             <div className="text-center mt-3">
-              <span className="text-white" style={{ cursor: "pointer" }} onClick={handleForgotPassword}>Forgot Password?</span>
+              <span style={{ cursor: "pointer", color: "gray"  }} onClick={handleForgotPassword}
+               onMouseEnter={(e) => e.target.style.color = 'white'}
+               onMouseLeave={(e) => e.target.style.color = 'gray'}>Forgot Password?</span>
             </div>
             <div className="text-center mt-2">
-              <span className="text-white" style={{ cursor: "pointer" }} onClick={changeToSignup}>Create New Account?</span>
+              <span style={{ cursor: "pointer" , color: "gray" }} onClick={changeToSignup}
+               onMouseEnter={(e) => e.target.style.color = 'white'}
+               onMouseLeave={(e) => e.target.style.color = 'gray'}>Create New Account?</span>
             </div>
           </Form>
         </Col>
