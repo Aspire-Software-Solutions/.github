@@ -3,13 +3,11 @@ import TextareaAutosize from "react-textarea-autosize";
 import { withRouter } from "react-router-dom";
 import { toast } from "react-toastify";
 import useInput from "../../hooks/useInput";
-import Input from "../Input";
 import Button from "../../styles/Button";
-import Form from "../../styles/Form";
 import { displayError, uploadImage } from "../../utils";
 import CoverPhoto from "../../styles/CoverPhoto";
 import Avatar from "../../styles/Avatar";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { getFirestore, doc, updateDoc } from "firebase/firestore"; // Firestore
 
 const defaultAvatarUrl = "/default-avatar.png"; // Default avatar path
@@ -17,27 +15,112 @@ const defaultCoverPhotoUrl = "/default-cover-photo.png"; // Default cover photo 
 
 // Local styled components for EditProfileForm
 const EditableCoverPhoto = styled(CoverPhoto)`
-  border: 2px solid ${(props) => props.theme.accentColor}; // Outline around the cover photo
-  border-radius: 10px; // Optional for rounded corners
-  cursor: pointer; // Indicating it's clickable
+  border: 2px solid ${(props) => props.theme.accentColor};
+  border-radius: 10px;
+  cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: ${(props) => props.theme.primaryColor}; // Change color on hover
+    border-color: ${(props) => props.theme.primaryColor};
   }
 `;
 
 const EditableAvatar = styled(Avatar)`
-  border: 3px solid ${(props) => props.theme.accentColor}; // Outline around avatar
-  cursor: pointer; // Indicating it's clickable
+  border: 3px solid ${(props) => props.theme.accentColor};
+  cursor: pointer;
   transition: all 0.3s ease;
-  
+
   &:hover {
-    border-color: ${(props) => props.theme.primaryColor}; // Change color on hover
+    border-color: ${(props) => props.theme.primaryColor};
   }
 `;
 
-const EditProfileForm = ({ profile, history }) => {
+const StyledForm = styled.form`
+  width: 380px;
+  border: 1px solid ${(props) => props.theme.tertiaryColor};
+  padding: 2rem;
+  border-radius: 10px;
+
+  span {
+    text-align: center;
+    display: block;
+    margin-bottom: 0.5rem;
+    color: ${(props) => props.theme.secondaryColor};
+  }
+
+  .group-input {
+    display: flex;
+    justify-content: space-between;
+
+    div:nth-child(1) {
+      margin-right: 1rem;
+    }
+  }
+
+  ${(props) =>
+    props.lg &&
+    css`
+      width: 98%;
+      border: none;
+      border-radius: none;
+    `}
+
+  ${(props) =>
+    props.center &&
+    css`
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    `}
+
+  @media screen and (max-width: 400px) {
+    width: 360px;
+  }
+
+  input,
+  textarea {
+    width: 100%;
+    padding: 0.1rem;
+    margin-bottom: .2rem;
+    background-color: ${(props) => props.theme.tertiaryColor2}; /* Set background color for inputs */
+    border: 1px solid ${(props) => props.theme.accentColor}; /* Add a border */
+    border-radius: 5px;
+    color: ${(props) => props.theme.primaryColor}; /* Set text color */
+    font-size: 1rem;
+    font-family: ${(props) => props.theme.font};
+
+    &:focus {
+      outline: none;
+      border-color: ${(props) => props.theme.primaryColor}; /* Highlight border on focus */
+    }
+  }
+
+  .bio-wrapper,
+  .input-wrapper {
+    background: ${(props) => props.theme.tertiaryColor2};
+    margin-bottom: 1.4rem;
+    border-bottom: 1px solid ${(props) => props.theme.accentColor};
+    padding: 0.5rem;
+
+    label {
+      color: ${(props) => props.theme.secondaryColor};
+      margin-bottom: 0.4rem;
+      display: block;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      background: inherit;
+      border: none;
+      font-size: 1rem;
+      color: ${(props) => props.theme.primaryColor};
+    }
+  }
+`;
+
+const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
   const [avatarState, setAvatar] = useState(""); // Store the selected avatar file
   const [coverPhotoState, setCoverPhoto] = useState(""); // Store the selected cover photo file
   const [avatarFile, setAvatarFile] = useState(null); // New state to hold avatar file
@@ -72,6 +155,9 @@ const EditProfileForm = ({ profile, history }) => {
       // Upload avatar if a new file is selected
       if (avatarFile) {
         newAvatarUrl = await uploadImage(avatarFile);
+        if (onAvatarUpdate) {
+          onAvatarUpdate(newAvatarUrl); // Trigger the avatar update everywhere
+        }
       }
 
       // Upload cover photo if a new file is selected
@@ -130,7 +216,7 @@ const EditProfileForm = ({ profile, history }) => {
   };
 
   return (
-    <Form lg onSubmit={handleEditProfile}>
+    <StyledForm lg onSubmit={handleEditProfile}>
       <div className="cover-photo">
         <label htmlFor="cover-photo-input">
           <EditableCoverPhoto
@@ -144,8 +230,6 @@ const EditProfileForm = ({ profile, history }) => {
           accept="image/*"
           onChange={handleCoverPhoto}
         />
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-        </div>
       </div>
 
       <div className="avatar-input">
@@ -164,18 +248,24 @@ const EditProfileForm = ({ profile, history }) => {
         />
       </div>
 
-      <Input
-        lg={true}
-        text="First Name"
-        value={firstname.value}
-        onChange={firstname.onChange}
-      />
-      <Input
-        lg={true}
-        text="Last Name"
-        value={lastname.value}
-        onChange={lastname.onChange}
-      />
+      <div className="input-wrapper">
+        <label>First Name</label>
+        <input
+          placeholder="First Name"
+          value={firstname.value}
+          onChange={firstname.onChange}
+        />
+      </div>
+
+      <div className="input-wrapper">
+        <label>Last Name</label>
+        <input
+          placeholder="Last Name"
+          value={lastname.value}
+          onChange={lastname.onChange}
+        />
+      </div>
+
       <div className="bio-wrapper">
         <label className="bio" htmlFor="bio">
           Bio
@@ -187,12 +277,16 @@ const EditProfileForm = ({ profile, history }) => {
           onChange={bio.onChange}
         />
       </div>
-      <Input
-        lg={true}
-        text="Website"
-        value={website.value}
-        onChange={website.onChange}
-      />
+
+      <div className="input-wrapper">
+        <label>Website</label>
+        <input
+          placeholder="Website"
+          value={website.value}
+          onChange={website.onChange}
+        />
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <Button outline disabled={loading} type="submit">
           {loading ? "Saving" : "Save"}
@@ -201,7 +295,7 @@ const EditProfileForm = ({ profile, history }) => {
           Cancel
         </Button>
       </div>
-    </Form>
+    </StyledForm>
   );
 };
 

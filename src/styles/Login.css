@@ -29,7 +29,7 @@
     width: 100%;
     max-width: 600px; /* Set a reasonable maximum width */
     margin: 2rem auto; /* Center it and add spacing above and below */
-    background: rgb(114, 0, 0);
+    background: #720000;
     padding: 2rem; /* Internal padding for content */
     box-sizing: border-box;
     display: flex;

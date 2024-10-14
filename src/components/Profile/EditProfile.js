@@ -5,6 +5,7 @@ import Loader from "../Loader";
 import EditProfileForm from "./EditProfileForm";
 import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firestore
 import { getAuth } from "firebase/auth"; // Firebase Authentication
+import { updateAvatarEverywhere } from "../../utils"; // Import the avatar update utility
 
 const Wrapper = styled.div`
   padding-bottom: 5rem;
@@ -89,13 +90,20 @@ const EditProfile = () => {
     fetchProfile();
   }, [user, db]);
 
+  // After profile update, call updateAvatarEverywhere to update avatar across the app
+  const handleAvatarUpdate = async (newAvatarUrl) => {
+    if (user && newAvatarUrl) {
+      await updateAvatarEverywhere(user.uid, newAvatarUrl); // Call the update utility function
+    }
+  };
+
   if (loading) return <Loader />;
 
   return (
     <Wrapper>
       <Header>Edit Profile</Header>
       <div className="flex-wrapper">
-        <EditProfileForm profile={profileData} />
+        <EditProfileForm profile={profileData} onAvatarUpdate={handleAvatarUpdate} />
       </div>
     </Wrapper>
   );

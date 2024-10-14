@@ -2,7 +2,6 @@ import React, { useState, useContext, useEffect } from "react";
 import styled from "styled-components";
 import { ThemeContext } from "../context/ThemeContext";
 import { lightTheme, darkTheme } from "../styles/themes";
-import { ThemeIcon } from "./Icons";
 
 export const Wrapper = styled.div`
   display: flex;
@@ -13,6 +12,11 @@ export const Wrapper = styled.div`
 
   p {
     margin-left: 0.4rem;
+    margin-bottom: 0; /* Ensure margin consistency */
+  }
+
+  &:hover p {
+    color: ${(props) => props.theme.accentColor}; /* Highlight text on hover */
   }
 `;
 
@@ -38,7 +42,6 @@ const ToggleTheme = () => {
 
   return (
     <Wrapper onClick={toggleTheme} aria-label="Toggle Theme">
-      <ThemeIcon sm color={theme.accentColor} />
       <p>{currentTheme === "dark" ? "Light Theme" : "Dark Theme"}</p>
     </Wrapper>
   );

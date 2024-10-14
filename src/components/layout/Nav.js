@@ -1,168 +1,221 @@
 import styled from "styled-components";
-import { Link, NavLink } from "react-router-dom";
-import MorePopup from "../MorePopup";
+import { NavLink, useHistory, useLocation } from "react-router-dom"; // Import necessary hooks
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firestore imports
-import React, { useState, useEffect } from "react";
-import {
-  Logo,
-  HomeIcon,
-  ExploreIcon,
-  NotificationIcon,
-  ProfileIcon,
-  BmIcon,
-} from "../Icons";
+import React, { useState, useEffect, useRef } from "react";
+import { HomeIcon, ExploreIcon, NotificationIcon, ChatIcon, BackIcon } from "../Icons"; // Add your BackIcon here
+import ToggleTheme from "../ToggleTheme"; // Import the theme toggle component
 
 const Wrapper = styled.nav`
-  width: 14.6%;
-  padding: 1rem;
-  border-right: 1px solid ${(props) => props.theme.tertiaryColor};
-  height: 100vh;
+  height: 4rem;
+  padding: 0.5rem 1rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); /* Soft shadow under navbar */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   position: fixed;
-  font-weight: 500;
+  width: 100%;
+  z-index: 2;
+  background-color: #720000; /* Set a fixed navbar color */
 
-  svg {
-    width: 28px;
-    height: 28px;
-    margin-right: 0.5rem;
-    position: relative;
-    color: ${(props) => props.theme.accentColor};
-    top: 7px;
+  .nav-center {
+    display: flex;
+    justify-content: center;
+    flex-grow: 1;
+    gap: 11rem; /* Adjust spacing between icons in the center */
+    padding-left: 5rem;
   }
 
-  .logo {
-    margin-bottom: 1.3rem;
+  .nav-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 1.5rem; /* Adjust spacing between notification, chat, and profile icons */
+  }
+
+  .profile-menu {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .profile-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    background-color: white; /* Ensures profile avatar has a white circle background */
+    padding: 4px; /* Space around the avatar image */
+  }
+
+  .profile-avatar img {
+    border-radius: 50%;
+    width: 100%;
+    height: 100%;
+  }
+
+  .profile-avatar:hover {
+    transform: scale(1.1);
+  }
+
+  .dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: ${(props) => props.theme.background};
+    border: 1px solid ${(props) => props.theme.tertiaryColor};
+    padding: 0.5rem 1rem;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    z-index: 5;
+  }
+
+  .dropdown a,
+  .dropdown button {
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: ${(props) => props.theme.primaryColor};
+  }
+
+  .dropdown button:hover,
+  .dropdown a:hover {
+    color: ${(props) => props.theme.accentColor};
   }
 
   ul {
     display: flex;
-    flex-direction: column;
-    height: 100%;
+    justify-content: space-around;
+    width: 100%;
   }
 
   li {
-    margin-bottom: 2rem;
+    margin-right: 1.5rem;
   }
 
-  .selected,
-  .selected svg {
-    color: ${(props) => props.theme.accentColor};
-    fill: ${(props) => props.theme.accentColor};
+  svg {
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    transition: transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease; /* Smooth transition for fill and stroke */
+    fill: white;
   }
 
-  @media screen and (max-width: 1100px) {
-    width: 10%;
-
-    span {
-      display: none;
-    }
-
-    svg {
-      margin-right: 0;
-    }
-
-    li {
-      margin: none;
-    }
-
-    button {
-      display: none;
-    }
+  svg:hover {
+    transform: scale(1.1);
+    fill: ${(props) => props.theme.accentColor}; /* For filled icons */
+    stroke: ${(props) => props.theme.accentColor}; /* For outline icons */
   }
 
   @media screen and (max-width: 530px) {
-    bottom: 0;
-    width: 100vw;
-    border-right: none;
-    height: 4rem;
-    border-top: 1px solid ${(props) => props.theme.tertiaryColor};
-    z-index: 2;
-    background: ${(props) => props.theme.background};
-
-    ul {
-      flex-direction: row;
-      justify-content: space-between;
+    .dropdown {
+      right: 5px;
     }
 
-    li {
+    .profile-avatar {
+      width: 30px;
+      height: 30px;
     }
-
-    svg {
-      width: 22px;
-      height: 22px;
-    }
-  }
-
-  @media screen and (max-width: 500px) {
   }
 `;
 
 const Nav = () => {
   const auth = getAuth();
-  const user = auth.currentUser; // Get the currently logged-in user
-  const [handle, setHandle] = useState(null); // Store the handle
-  const db = getFirestore(); // Initialize Firestore
+  const user = auth.currentUser;
+  const [handle, setHandle] = useState(null);
+  const [userAvatar, setUserAvatar] = useState("/default-avatar.png");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const db = getFirestore();
+  const history = useHistory(); // To use history and navigate back
+  const location = useLocation(); // To get the current route
+
+  // Check if the current route should show a back button
+  const showBackButton =
+    location.pathname.includes("/followers") ||
+    location.pathname.includes("/following") ||
+    location.pathname.includes("/status");
 
   useEffect(() => {
-    const fetchHandle = async () => {
+    const fetchProfile = async () => {
       if (user) {
-        // Fetch the handle from the profiles collection using the user ID
-        const profileRef = doc(db, "profiles", user.uid); // Assuming user.uid is the document ID
+        const profileRef = doc(db, "profiles", user.uid);
         const profileSnap = await getDoc(profileRef);
 
         if (profileSnap.exists()) {
-          setHandle(profileSnap.data().handle); // Set the handle
-        } else {
-          console.log("No profile found!");
+          const profileData = profileSnap.data();
+          setHandle(profileData.handle);
+          setUserAvatar(profileData.avatarUrl || "/default-avatar.png");
         }
       }
     };
-
-    fetchHandle();
+    fetchProfile();
   }, [user, db]);
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen((prevState) => !prevState);
+  };
+
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setIsDropdownOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   return (
     <Wrapper>
-      <ul>
-        <Link to="/">
-          <h3 className="logo">
-            <Logo />
-          </h3>
-        </Link>
+      {/* Conditionally render the back button */}
+      {showBackButton && (
+        <div onClick={() => history.goBack()} style={{ cursor: "pointer" }}>
+          <BackIcon />
+        </div>
+      )}
+
+      <div className="nav-center">
         <li>
           <NavLink exact activeClassName="selected" to="/">
-            <HomeIcon /> <span>Home</span>
+            <HomeIcon />
           </NavLink>
         </li>
         <li>
           <NavLink activeClassName="selected" to="/explore">
-            <ExploreIcon /> <span>Explore</span>
+            <ExploreIcon />
           </NavLink>
         </li>
-        <li>
-          <NavLink activeClassName="selected" to="/notifications">
-            <NotificationIcon /> <span>Notifications</span>
-          </NavLink>
-        </li>
-        <li>
-          <NavLink activeClassName="selected" to="/bookmarks">
-            <BmIcon /> <span>Bookmarks</span>
-          </NavLink>
-        </li>
-        <li>
-          {/* Show the profile link even before the handle is loaded */}
-          {user ? (
-            <NavLink activeClassName="selected" to={handle ? `/${handle}` : "/"}>
-              <ProfileIcon /> <span>{handle ? "Profile" : "Your Profile"}</span>
-            </NavLink>
-          ) : (
-            <span>Sign in</span>
+      </div>
+
+      <div className="nav-right">
+        <NavLink activeClassName="selected" to="/notifications">
+          <NotificationIcon />
+        </NavLink>
+        <NavLink activeClassName="selected" to="/conversations">
+          <ChatIcon />
+        </NavLink>
+
+        <div className="profile-menu">
+          <div className="profile-avatar" onClick={toggleDropdown}>
+            <img src={userAvatar} alt="Profile" />
+          </div>
+          {isDropdownOpen && (
+            <div className="dropdown" ref={dropdownRef}>
+              <NavLink to={`/${handle}`}>Profile</NavLink>
+              <NavLink to="/bookmarks">Bookmarks</NavLink>
+              <ToggleTheme /> {/* Inserted theme toggle component */}
+              <button onClick={() => auth.signOut()}>Logout</button>
+            </div>
           )}
-        </li>
-        <li>
-          <MorePopup />
-        </li>
-      </ul>
+        </div>
+      </div>
     </Wrapper>
   );
 };

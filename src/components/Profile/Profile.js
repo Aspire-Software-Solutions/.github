@@ -5,7 +5,7 @@ import Header from "../Header";
 import ProfileInfo from "./ProfileInfo";
 import Quickie from "../Quickie/Quickie";
 import Loader from "../Loader";
-import { getFirestore, collection, query, where, getDocs } from "firebase/firestore"; // Firebase Firestore imports
+import { getFirestore, collection, query, where, onSnapshot } from "firebase/firestore"; // Firestore Firestore imports
 
 const Wrapper = styled.div`
   padding-bottom: 5rem;
@@ -30,44 +30,34 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const db = getFirestore(); // Initialize Firestore
 
-  console.log("Profile component rendered");
-
   useEffect(() => {
-    const fetchProfileAndQuickies = async () => {
+    const fetchProfileAndQuickies = () => {
       setLoading(true);
-      try {
-        // Fetch the user profile using the handle
-        const profileQuery = query(
-          collection(db, "profiles"),
-          where("handle", "==", handle)
-        );
-        const profileSnap = await getDocs(profileQuery);
 
-        if (!profileSnap.empty) {
-          const profileDoc = profileSnap.docs[0];
+      // Real-time listener for profile data
+      const profileQuery = query(collection(db, "profiles"), where("handle", "==", handle));
+
+      onSnapshot(profileQuery, (profileSnapshot) => {
+        if (!profileSnapshot.empty) {
+          const profileDoc = profileSnapshot.docs[0];
           setProfileData(profileDoc.data());
 
-          // Fetch the user's quickies from Firestore
-          const quickiesQuery = query(
-            collection(db, "quickies"),
-            where("userId", "==", profileDoc.data().userId)
-          );
-          const quickiesSnap = await getDocs(quickiesQuery);
+          // Fetch the user's quickies in real-time
+          const quickiesQuery = query(collection(db, "quickies"), where("userId", "==", profileDoc.data().userId));
+          onSnapshot(quickiesQuery, (quickiesSnapshot) => {
+            const quickiesList = quickiesSnapshot.docs.map((doc) => ({
+              id: doc.id,
+              ...doc.data(),
+            }));
 
-          const quickiesList = quickiesSnap.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          }));
-
-          setQuickies(quickiesList);
+            setQuickies(quickiesList);
+          });
         } else {
           console.log("No such profile!");
         }
-      } catch (error) {
-        console.error("Error fetching profile or quickies: ", error);
-      } finally {
+
         setLoading(false);
-      }
+      });
     };
 
     fetchProfileAndQuickies();
@@ -82,8 +72,8 @@ const Profile = () => {
           <span>{`${profileData.firstname} ${profileData.lastname}`}</span>
           <span className="quickieCount">
             {quickies.length
-              ? `${quickies.length} Quickies`
-              : "No Quickies"}
+              ? `${quickies.length} Attacks`
+              : "No Attacks"}
           </span>
         </div>
       </Header>
@@ -96,6 +86,5 @@ const Profile = () => {
     </Wrapper>
   );
 };
-
 
 export default Profile;
