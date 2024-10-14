@@ -17,7 +17,7 @@ import '../../styles/Login.css' // Specific Styles for Login.CSS
 // Adjust the path if necessary
 const companyLogo = "/companyLogo.png";
 
-export default ({ changeToSignup }) => {
+export default ({ changeToSignup, changeToForgotPass}) => {
   const email = useInput("");
   const password = useInput("");
   const auth = getAuth();
@@ -123,7 +123,7 @@ export default ({ changeToSignup }) => {
   };
 
   const handleForgotPassword = () => {
-    toast.info("Redirecting to password reset page...");
+    changeToForgotPass();
   };
 
   return (
