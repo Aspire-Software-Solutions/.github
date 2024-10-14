@@ -19,7 +19,7 @@ import HexagonBox from "../ui/HexagonBox";
 const companyLogo = "/companyLogo.png";
 
 
-export default ({ changeToSignup, changeToForgotPass}) => {
+const SignIn = ({ changeToSignup }) => {
   const email = useInput("");
   const password = useInput("");
   const auth = getAuth();
