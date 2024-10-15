@@ -3,7 +3,7 @@ import { NavLink, useHistory, useLocation } from "react-router-dom"; // Import n
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
 import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firestore imports
 import React, { useState, useEffect, useRef } from "react";
-import { HomeIcon, ExploreIcon, NotificationIcon, ChatIcon, BackIcon } from "../Icons"; // Add your BackIcon here
+import { HomeIcon, ExploreIcon, NotificationIcon, ChatIcon, BackIcon, AdminIcon } from "../Icons"; // Add your BackIcon here
 import ToggleTheme from "../ToggleTheme"; // Import the theme toggle component
 
 const Wrapper = styled.nav`
@@ -128,6 +128,7 @@ const Nav = () => {
   const [handle, setHandle] = useState(null);
   const [userAvatar, setUserAvatar] = useState("/default-avatar.png");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false); // New state for admin status
   const dropdownRef = useRef(null);
   const db = getFirestore();
   const history = useHistory(); // To use history and navigate back
@@ -149,6 +150,7 @@ const Nav = () => {
           const profileData = profileSnap.data();
           setHandle(profileData.handle);
           setUserAvatar(profileData.avatarUrl || "/default-avatar.png");
+          setIsAdmin(profileData.isAdmin || false); // Check if the user is an admin
         }
       }
     };
@@ -192,6 +194,13 @@ const Nav = () => {
             <ExploreIcon />
           </NavLink>
         </li>
+        {isAdmin && (
+          <li>
+            <NavLink activeClassName="selected" to="/ContentModeration">
+              <AdminIcon /> {/* Use any icon you want here */}
+            </NavLink>
+          </li>
+        )}
       </div>
 
       <div className="nav-right">
@@ -210,6 +219,7 @@ const Nav = () => {
             <div className="dropdown" ref={dropdownRef}>
               <NavLink to={`/${handle}`}>Profile</NavLink>
               <NavLink to="/bookmarks">Bookmarks</NavLink>
+
               <ToggleTheme /> {/* Inserted theme toggle component */}
               <button onClick={() => auth.signOut()}>Logout</button>
             </div>

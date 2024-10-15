@@ -17,7 +17,7 @@ const ModalWrapper = styled.div`
 
 const ModalContent = styled.div`
   background: white;
-  color: black; 
+  color: black;
   padding: 2rem;
   border-radius: 8px;
   width: 400px;
@@ -33,6 +33,8 @@ const CloseButton = styled.button`
   top: 10px;
   right: 10px;
   cursor: pointer;
+  color: black; /* Make the 'X' black */
+  font-weight: bold; /* Make it stand out */
 `;
 
 const SubmitButton = styled.button`

@@ -1,55 +1,55 @@
 import 'bootstrap/dist/css/bootstrap.min.css';
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, 
-  Table, Form, Modal, Dropdown, DropdownButton 
-  } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Table, Form, Modal, Dropdown, DropdownButton } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
+import { getAuth } from "firebase/auth"; // Add this import
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
 import { collection, onSnapshot, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from '../firebase'; // Ensure this is your Firebase configuration file
 
-const ModerationDashboard = ({ user, isAdmin }) => {
+const ModerationDashboard = () => {
 
-  console.log("ModerationDashboard loaded");
-  console.log("Received user prop:", user);
-
-  const checkAdminAccess = () => {
-    if (!user || !isAdmin) {
-      console.error(`Access denied. User is not an admin. isAdmin: ${isAdmin}`);
-      return false;
-    }
-    console.log("Admin access granted.");
-    return true;
-  };
-
-  // Run access check before any content renders
-  if (!checkAdminAccess()) {
-    return <h1>ACCESS DENIED</h1>;
-  }
-
-  // Init storage (needed for handling images and videos)
-  const storage = getStorage();
-
-  // State to manage filter inputs
   const [statusFilter, setStatusFilter] = useState('All');
   const [contentTypeFilter, setContentTypeFilter] = useState('All');
   const [imageUrl, setImageUrl] = useState('');
-
-  // State for handling the modal
   const [showModal, setShowModal] = useState(false);
   const [selectedReport, setSelectedReport] = useState(null);
-
-  // Add state to manage rejection reason
-  const [rejectReason, setRejectReason] = useState(''); 
-
-  // Add state to manage closed reports that can only viewed in a "View only"
+  const [rejectReason, setRejectReason] = useState('');
   const [viewOnlyMode, setViewOnlyMode] = useState(false);
-
-  // State to manage original and filtered content
   const [originalContent, setOriginalContent] = useState([]);
   const [filteredContent, setFilteredContent] = useState([]);
   const [approvedContent, setApprovedContent] = useState([]);
   const [rejectedContent, setRejectedContent] = useState([]);
+  const [loading, setLoading] = useState(true); // To show loading state
+  const [isAdmin, setIsAdmin] = useState(false); // Admin state
+  const auth = getAuth();
+  const user = auth.currentUser;
+
+  // Init storage (needed for handling images and videos)
+  const storage = getStorage();
+
+  // Check admin access
+  useEffect(() => {
+    const checkAdminAccess = async () => {
+      if (user) {
+        try {
+          const profileRef = doc(db, "profiles", user.uid);
+          const profileSnap = await getDoc(profileRef);
+          if (profileSnap.exists()) {
+            const profileData = profileSnap.data();
+            if (profileData.isAdmin) {
+              setIsAdmin(true);
+              console.log("Admin access granted.");
+            }
+          }
+        } catch (error) {
+          console.error("Error checking admin access:", error);
+        }
+      }
+      setLoading(false); // End loading after checking
+    };
+    checkAdminAccess();
+  }, [user]);
 
   // Fetch reports from Firestore (real-time updates included)
   useEffect(() => {
@@ -58,26 +58,21 @@ const ModerationDashboard = ({ user, isAdmin }) => {
         id: doc.id,
         ...doc.data()
       }));
-  
       setOriginalContent(reportsData);
-
-      // Apply filters for pending, approved, and rejected reports
       setFilteredContent(reportsData.filter(item => item.status === 'Pending'));
       setApprovedContent(reportsData.filter(item => item.status === 'Approved'));
       setRejectedContent(reportsData.filter(item => item.status === 'Rejected'));
     });
-  
-    return () => unsubscribe(); // Cleanup the listener on unmount
+    return () => unsubscribe();
   }, []);
 
   // Function to handle opening the modal
   const handleShowModal = (report) => {
     setSelectedReport(report);
     setShowModal(true);
-    setViewOnlyMode(report.status === 'Approved' || report.status === 'Rejected');  // Enable view-only mode for closed reports
+    setViewOnlyMode(report.status === 'Approved' || report.status === 'Rejected');
     setRejectReason('');
 
-    // Fetch the public URL for the image if the content type is Image
     if (report.type === "Image") {
       const storageRef = ref(storage, report.content);
       getDownloadURL(storageRef)
@@ -87,45 +82,35 @@ const ModerationDashboard = ({ user, isAdmin }) => {
           setImageUrl('');
         });
     } else {
-      setImageUrl(''); // Reset if it's not an image
+      setImageUrl('');
     }
   };
 
-  // Function to handle closing the modal
   const handleCloseModal = () => {
     setShowModal(false);
     setSelectedReport(null);
-    setImageUrl(''); // Clear image URL when modal is closed
+    setImageUrl('');
     setRejectReason('');
-  };  
+  };
 
   const handleApplyFilters = () => {
-    // Filter originalContent by the selected content type
     const filtered = originalContent.filter(item => {
       const isPending = item.status === 'Pending';
       const contentTypeMatch = contentTypeFilter === 'All' || item.type.toLowerCase() === contentTypeFilter.toLowerCase().trim();
       return isPending && contentTypeMatch;
     });
-  
-    // Update the filtered content state with the applied filters
     setFilteredContent(filtered);
   };
-  
 
-  // Function to handle approve/reject actions
   const handleModerationAction = async (action) => {
-    const reportId = selectedReport.id; // This is the Firestore document ID
-  
+    const reportId = selectedReport.id;
     try {
-      const reportRef = doc(db, "reports", reportId); // Reference to the document
-  
-      // Update the status (either 'Approved' or 'Rejected')
+      const reportRef = doc(db, "reports", reportId);
       await updateDoc(reportRef, {
         status: action === 'approve' ? 'Approved' : 'Rejected',
-        ...(action === 'reject' && { rejectReason }) // Include the rejectReason if it's a rejection
+        ...(action === 'reject' && { rejectReason })
       });
-  
-      // Update the status locally for UI purposes
+
       setOriginalContent(prevContent =>
         prevContent.map(item => {
           if (item.id === reportId) {
@@ -134,16 +119,20 @@ const ModerationDashboard = ({ user, isAdmin }) => {
           return item;
         })
       );
-  
-      handleCloseModal(); // Close the modal after updating
-  
+
+      handleCloseModal();
     } catch (error) {
       console.error("Error updating document:", error);
     }
   };
-  
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
+  if (!isAdmin) {
+    return <h1>ACCESS DENIED</h1>;
+  }
 
   return (
     <>
