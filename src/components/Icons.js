@@ -297,3 +297,18 @@ export const MoreIcon = (
     </g>
   </Svg>
 );
+
+export const DangerIcon = () => (
+  <Svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    width="24"
+    height="24"
+    fill="red" // You can change this color as needed
+  >
+    <g>
+      <path d="M11.001 9h2v5h-2zm0 7h2v2h-2z"></path>
+      <path d="M1 21h22L12 2 1 21zM12 4.3l7.38 13.4H4.62L12 4.3z"></path>
+    </g>
+  </Svg>
+);
