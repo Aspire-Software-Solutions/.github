@@ -123,7 +123,7 @@ const Notifications = () => {
             {notification.type === "follow" && (
               <p>
                 <Link to={`/${notification.fromUserHandle}`}>
-                  {notification.fromUserHandle} followed you.
+                Good news! {notification.fromUserHandle} just followed you!
                 </Link>
               </p>
             )}
