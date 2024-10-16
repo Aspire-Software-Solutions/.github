@@ -111,25 +111,54 @@ const Notifications = () => {
           <NotificationItem
             key={notification.id}
             isRead={notification.isRead}
-            onClick={() => markAsRead(notification.id)}
+            onClick={() => {
+              console.log("Notification clicked:", notification); // Log the full notification object
+              markAsRead(notification.id);
+            }}
           >
             {notification.type === "like" && (
               <p>
-                <Link to={`/quickie/${notification.quickieId}`}>
+                <Link
+                  to={`/${notification.fromUserHandle}/status/${notification.quickieId}`}  // Correct structure {handle}/status/{quickieId}
+                  onClick={() => {
+                    console.log("Like notification clicked:", {
+                      quickieId: notification.quickieId,
+                      fromUserHandle: notification.fromUserHandle,
+                    }); // Log quickieId and fromUserHandle
+                    markAsRead(notification.id);
+                  }}
+                >
                   Hey! {notification.fromUserHandle} liked your quickie.
                 </Link>
               </p>
             )}
             {notification.type === "follow" && (
               <p>
-                <Link to={`/${notification.fromUserHandle}`}>
-                Good news! {notification.fromUserHandle} just followed you!
+                <Link
+                  to={`/${notification.fromUserHandle}`} // Redirect to just /{handle}
+                  onClick={() => {
+                    console.log("Follow notification clicked:", {
+                      fromUserHandle: notification.fromUserHandle,
+                    }); // Log fromUserHandle
+                    markAsRead(notification.id);
+                  }}
+                >
+                  Good news! {notification.fromUserHandle} just followed you!
                 </Link>
               </p>
             )}
             {notification.type === "comment" && (
               <p>
-                <Link to={`/quickie/${notification.quickieId}`}>
+                <Link
+                  to={`/${notification.fromUserHandle}/status/${notification.quickieId}`}  // Correct structure {handle}/status/{quickieId}
+                  onClick={() => {
+                    console.log("Comment notification clicked:", {
+                      quickieId: notification.quickieId,
+                      fromUserHandle: notification.fromUserHandle,
+                    }); // Log quickieId and fromUserHandle
+                    markAsRead(notification.id);
+                  }}
+                >
                   {notification.fromUserHandle} commented on your quickie.
                 </Link>
               </p>
@@ -141,7 +170,9 @@ const Notifications = () => {
         <p>No notifications yet.</p>
       )}
     </Wrapper>
-  );
+  );  
+  
+
 };
 
 export default Notifications;
