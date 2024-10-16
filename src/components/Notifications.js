@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from "react";
-import styled from "styled-components";
-import { getFirestore, collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc } from "firebase/firestore"; // Firestore imports
+import styled, { keyframes } from "styled-components";
+import { getFirestore, collection, query, where, orderBy, getDocs, doc, deleteDoc, getDoc, updateDoc } from "firebase/firestore"; // Firestore imports
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import { Link } from "react-router-dom";
+import { TrashIcon } from "./Icons";
+
+// Animation for fading out the notification
+const fadeOut = keyframes`
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+`;
 
 const Wrapper = styled.div`
   padding: 1rem;
@@ -13,6 +24,7 @@ const NotificationItem = styled.div`
   background-color: ${(props) => (props.isRead ? "#f0f0f0" : "#fff")};
   border-bottom: 1px solid ${(props) => props.theme.tertiaryColor};
   cursor: pointer;
+  position: relative; /* For positioning the dismiss button */
 
   &:hover {
     background-color: ${(props) => props.theme.tertiaryColor2};
@@ -27,11 +39,27 @@ const NotificationItem = styled.div`
     color: ${(props) => props.theme.secondaryColor};
     font-size: 0.85rem;
   }
+
+  // Apply fade-out animation if the item is dismissed
+  &.fade-out {
+    animation: ${fadeOut} 0.5s forwards;
+  }
+`;
+
+const DismissButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: green;
+  cursor: pointer;
 `;
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fadingOutNotifications, setFadingOutNotifications] = useState({}); // Track which notifications are fading out
   const db = getFirestore();
   const auth = getAuth();
   const currentUser = auth.currentUser;
@@ -57,7 +85,7 @@ const Notifications = () => {
             const notificationData = notificationDoc.data();
 
             // Get the reference to the profile of the user who generated the notification
-            const profileRef = doc(db, "profiles", notificationData.fromUserId); // Corrected here
+            const profileRef = doc(db, "profiles", notificationData.fromUserId);
             const profileSnap = await getDoc(profileRef);
 
             if (profileSnap.exists()) {
@@ -76,7 +104,6 @@ const Notifications = () => {
             }
           })
         );
-
 
         setNotifications(notificationsList);
         setLoading(false);
@@ -100,6 +127,27 @@ const Notifications = () => {
     }
   };
 
+  const dismissNotification = async (notificationId) => {
+    // Start fade-out animation
+    setFadingOutNotifications((prev) => ({ ...prev, [notificationId]: true }));
+
+    // Wait for animation to finish (500ms)
+    setTimeout(async () => {
+      // Remove notification from Firestore
+      try {
+        const notificationRef = doc(db, "notifications", notificationId);
+        await deleteDoc(notificationRef);
+
+        // Remove notification from the state
+        setNotifications((prev) =>
+          prev.filter((notification) => notification.id !== notificationId)
+        );
+      } catch (error) {
+        console.error("Error deleting notification: ", error);
+      }
+    }, 500); // Match the fade-out duration
+  };
+
   if (loading) {
     return <div>Loading notifications...</div>;
   }
@@ -108,46 +156,43 @@ const Notifications = () => {
     <Wrapper>
       {notifications.length ? (
         notifications.map((notification) => (
-          <Link
+          <div
             key={notification.id}
-            to={
-              notification.type === "like" || notification.type === "comment"
-                ? `/${notification.fromUserHandle}/status/${notification.quickieId}`
-                : `/${notification.fromUserHandle}`
-            }
-            onClick={() => {
-              console.log("Notification clicked:", notification); // Log the full notification object
-              markAsRead(notification.id);
-            }}
-            style={{ textDecoration: 'none', color: 'inherit' }} // Make sure the link doesn't affect the style
+            className={fadingOutNotifications[notification.id] ? "fade-out" : ""}
           >
-            <NotificationItem isRead={notification.isRead}>
-              {notification.type === "like" && (
-                <p>
-                  Hey! {notification.fromUserHandle} liked your quickie.
-                </p>
-              )}
-              {notification.type === "follow" && (
-                <p>
-                  Good news! {notification.fromUserHandle} just followed you!
-                </p>
-              )}
-              {notification.type === "comment" && (
-                <p>
-                  {notification.fromUserHandle} commented on your quickie.
-                </p>
-              )}
-              <span>{new Date(notification.createdAt.seconds * 1000).toLocaleString()}</span>
-            </NotificationItem>
-          </Link>
+            <Link
+              to={
+                notification.type === "like" || notification.type === "comment"
+                  ? `/${notification.fromUserHandle}/status/${notification.quickieId}`
+                  : `/${notification.fromUserHandle}`
+              }
+              onClick={() => {
+                markAsRead(notification.id);
+              }}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <NotificationItem isRead={notification.isRead}>
+                {notification.type === "like" && <p>Hey! {notification.fromUserHandle} liked your quickie.</p>}
+                {notification.type === "follow" && <p>Good news! {notification.fromUserHandle} just followed you!</p>}
+                {notification.type === "comment" && <p>{notification.fromUserHandle} commented on your quickie.</p>}
+                <span>{new Date(notification.createdAt.seconds * 1000).toLocaleString()}</span>
+
+                {/* Dismiss button with checkmark */}
+                <DismissButton onClick={(e) => {
+                  e.preventDefault(); // Prevent navigation when dismissing
+                  dismissNotification(notification.id);
+                }}>
+                  <TrashIcon />
+                </DismissButton>
+              </NotificationItem>
+            </Link>
+          </div>
         ))
       ) : (
         <p>No notifications yet.</p>
       )}
     </Wrapper>
   );
-  
-
 };
 
 export default Notifications;
