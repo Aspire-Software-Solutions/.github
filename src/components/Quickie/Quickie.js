@@ -6,7 +6,9 @@ import DeleteQuickie from "./DeleteQuickie";
 import LikeQuickie from "./LikeQuickie";
 import { BmIcon, BmFillIcon, CommentIcon, ShareIcon, DangerIcon } from "../Icons"; // Added DangerIcon
 import Avatar from "../../styles/Avatar";
-import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, increment, onSnapshot, getDoc, setDoc } from "firebase/firestore"; // Firestore imports
+import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, 
+         increment, onSnapshot, getDoc, setDoc, collection, addDoc,
+        } from "firebase/firestore"; // Firestore imports
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import { toast } from "react-toastify";
 import Modal from "../Modal"; // Added Modal import
@@ -168,9 +170,12 @@ const Quickie = ({ quickie }) => {
 
   const handleLikeQuickie = async () => {
     if (!currentUser) return; // Ensure user is authenticated
-
+  
     try {
       const quickieRef = doc(db, "quickies", id);
+      const quickieSnap = await getDoc(quickieRef);
+      const postOwnerId = quickieSnap.data().userId; // Post owner's ID
+  
       if (quickieData.likes.includes(currentUser.uid)) {
         // Remove the user's ID from the likes array and decrement likesCount
         await updateDoc(quickieRef, {
@@ -183,11 +188,23 @@ const Quickie = ({ quickie }) => {
           likes: arrayUnion(currentUser.uid),
           likesCount: increment(1),
         });
+  
+        // Create a notification for the post owner
+        const notificationsRef = collection(db, "notifications");
+        await addDoc(notificationsRef, {
+          type: "like",
+          quickieId: id, // The ID of the quickie that was liked
+          fromUserId: currentUser.uid, // User who liked the quickie
+          userId: postOwnerId, // Notify the post owner
+          createdAt: new Date(),
+          isRead: false,
+        });
       }
     } catch (error) {
       console.error("Error liking quickie: ", error);
     }
   };
+  
 
   const handleBookmarkQuickie = async () => {
     if (!currentUser) return; // Ensure user is authenticated

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import styled from "styled-components";
-import { getFirestore, collection, query, where, orderBy, getDocs, doc, updateDoc } from "firebase/firestore"; // Firestore imports
+import { getFirestore, collection, query, where, orderBy, getDocs, doc, getDoc, updateDoc } from "firebase/firestore"; // Firestore imports
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import { Link } from "react-router-dom";
 
@@ -37,9 +37,9 @@ const Notifications = () => {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const fetchNotificationsWithHandles = async () => {
       if (!currentUser) return;
-      
+
       setLoading(true);
 
       try {
@@ -50,11 +50,29 @@ const Notifications = () => {
           orderBy("createdAt", "desc")
         );
         const notificationSnapshot = await getDocs(q);
-        const notificationsList = notificationSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        
+        const notificationsList = await Promise.all(
+          notificationSnapshot.docs.map(async (doc) => {
+            const notificationData = doc.data();
+            const fromUserRef = doc(db, "profiles", notificationData.fromUserId);
+            const fromUserSnap = await getDoc(fromUserRef);
+
+            if (fromUserSnap.exists()) {
+              const fromUserHandle = fromUserSnap.data().handle; // Assume the profile has a 'handle' field
+              return {
+                id: doc.id,
+                ...notificationData,
+                fromUserHandle: fromUserHandle || notificationData.fromUserId, // Fallback to UID if no handle
+              };
+            } else {
+              return {
+                id: doc.id,
+                ...notificationData,
+                fromUserHandle: notificationData.fromUserId, // Fallback to UID if no profile found
+              };
+            }
+          })
+        );
+
         setNotifications(notificationsList);
         setLoading(false);
       } catch (error) {
@@ -63,14 +81,14 @@ const Notifications = () => {
       }
     };
 
-    fetchNotifications();
+    fetchNotificationsWithHandles();
   }, [db, currentUser]);
 
   const markAsRead = async (notificationId) => {
     try {
       const notificationRef = doc(db, "notifications", notificationId);
       await updateDoc(notificationRef, {
-        isRead: true
+        isRead: true,
       });
     } catch (error) {
       console.error("Error marking notification as read: ", error);
@@ -93,21 +111,21 @@ const Notifications = () => {
             {notification.type === "like" && (
               <p>
                 <Link to={`/quickie/${notification.quickieId}`}>
-                  User {notification.fromUserId} liked your quickie.
+                  Hey! {notification.fromUserHandle} liked your quickie.
                 </Link>
               </p>
             )}
             {notification.type === "follow" && (
               <p>
-                <Link to={`/${notification.fromUserId}`}>
-                  User {notification.fromUserId} followed you.
+                <Link to={`/${notification.fromUserHandle}`}>
+                  {notification.fromUserHandle} followed you.
                 </Link>
               </p>
             )}
             {notification.type === "comment" && (
               <p>
                 <Link to={`/quickie/${notification.quickieId}`}>
-                  User {notification.fromUserId} commented on your quickie.
+                  {notification.fromUserHandle} commented on your quickie.
                 </Link>
               </p>
             )}
