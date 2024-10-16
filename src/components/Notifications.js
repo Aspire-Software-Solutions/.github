@@ -49,29 +49,34 @@ const Notifications = () => {
           where("userId", "==", currentUser.uid),
           orderBy("createdAt", "desc")
         );
-        const notificationSnapshot = await getDocs(q);
-        const notificationsList = await Promise.all(
-          notificationSnapshot.docs.map(async (doc) => {
-            const notificationData = doc.data();
-            const fromUserRef = doc(db, "profiles", notificationData.fromUserId);
-            const fromUserSnap = await getDoc(fromUserRef);
 
-            if (fromUserSnap.exists()) {
-              const fromUserHandle = fromUserSnap.data().handle; // Assume the profile has a 'handle' field
+        const notificationSnapshot = await getDocs(q);
+
+        const notificationsList = await Promise.all(
+          notificationSnapshot.docs.map(async (notificationDoc) => {
+            const notificationData = notificationDoc.data();
+
+            // Get the reference to the profile of the user who generated the notification
+            const profileRef = doc(db, "profiles", notificationData.fromUserId); // Corrected here
+            const profileSnap = await getDoc(profileRef);
+
+            if (profileSnap.exists()) {
+              const fromUserHandle = profileSnap.data().handle; // Assume profile has a 'handle' field
               return {
-                id: doc.id,
+                id: notificationDoc.id,
                 ...notificationData,
                 fromUserHandle: fromUserHandle || notificationData.fromUserId, // Fallback to UID if no handle
               };
             } else {
               return {
-                id: doc.id,
+                id: notificationDoc.id,
                 ...notificationData,
                 fromUserHandle: notificationData.fromUserId, // Fallback to UID if no profile found
               };
             }
           })
         );
+
 
         setNotifications(notificationsList);
         setLoading(false);
