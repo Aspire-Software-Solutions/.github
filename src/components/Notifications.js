@@ -108,69 +108,44 @@ const Notifications = () => {
     <Wrapper>
       {notifications.length ? (
         notifications.map((notification) => (
-          <NotificationItem
+          <Link
             key={notification.id}
-            isRead={notification.isRead}
+            to={
+              notification.type === "like" || notification.type === "comment"
+                ? `/${notification.fromUserHandle}/status/${notification.quickieId}`
+                : `/${notification.fromUserHandle}`
+            }
             onClick={() => {
               console.log("Notification clicked:", notification); // Log the full notification object
               markAsRead(notification.id);
             }}
+            style={{ textDecoration: 'none', color: 'inherit' }} // Make sure the link doesn't affect the style
           >
-            {notification.type === "like" && (
-              <p>
-                <Link
-                  to={`/${notification.fromUserHandle}/status/${notification.quickieId}`}  // Correct structure {handle}/status/{quickieId}
-                  onClick={() => {
-                    console.log("Like notification clicked:", {
-                      quickieId: notification.quickieId,
-                      fromUserHandle: notification.fromUserHandle,
-                    }); // Log quickieId and fromUserHandle
-                    markAsRead(notification.id);
-                  }}
-                >
+            <NotificationItem isRead={notification.isRead}>
+              {notification.type === "like" && (
+                <p>
                   Hey! {notification.fromUserHandle} liked your quickie.
-                </Link>
-              </p>
-            )}
-            {notification.type === "follow" && (
-              <p>
-                <Link
-                  to={`/${notification.fromUserHandle}`} // Redirect to just /{handle}
-                  onClick={() => {
-                    console.log("Follow notification clicked:", {
-                      fromUserHandle: notification.fromUserHandle,
-                    }); // Log fromUserHandle
-                    markAsRead(notification.id);
-                  }}
-                >
+                </p>
+              )}
+              {notification.type === "follow" && (
+                <p>
                   Good news! {notification.fromUserHandle} just followed you!
-                </Link>
-              </p>
-            )}
-            {notification.type === "comment" && (
-              <p>
-                <Link
-                  to={`/${notification.fromUserHandle}/status/${notification.quickieId}`}  // Correct structure {handle}/status/{quickieId}
-                  onClick={() => {
-                    console.log("Comment notification clicked:", {
-                      quickieId: notification.quickieId,
-                      fromUserHandle: notification.fromUserHandle,
-                    }); // Log quickieId and fromUserHandle
-                    markAsRead(notification.id);
-                  }}
-                >
+                </p>
+              )}
+              {notification.type === "comment" && (
+                <p>
                   {notification.fromUserHandle} commented on your quickie.
-                </Link>
-              </p>
-            )}
-            <span>{new Date(notification.createdAt.seconds * 1000).toLocaleString()}</span>
-          </NotificationItem>
+                </p>
+              )}
+              <span>{new Date(notification.createdAt.seconds * 1000).toLocaleString()}</span>
+            </NotificationItem>
+          </Link>
         ))
       ) : (
         <p>No notifications yet.</p>
       )}
     </Wrapper>
-  );  
+  );
   
 
 };
