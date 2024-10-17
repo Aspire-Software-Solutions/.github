@@ -1,10 +1,11 @@
 import styled from "styled-components";
 import { NavLink, useHistory, useLocation } from "react-router-dom"; // Import necessary hooks
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
-import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firestore imports
+import { getFirestore, collection, query, where, doc, getDocs, getDoc } from "firebase/firestore"; // Firestore imports
 import React, { useState, useEffect, useRef } from "react";
 import { HomeIcon, ExploreIcon, NotificationIcon, ChatIcon, BackIcon, AdminIcon } from "../Icons"; // Add your BackIcon here
 import ToggleTheme from "../ToggleTheme"; // Import the theme toggle component
+import { Link } from "react-router-dom";
 
 const Wrapper = styled.nav`
   height: 4rem;
@@ -122,10 +123,24 @@ const Wrapper = styled.nav`
   }
 `;
 
+// Style for the notification count badge
+const badgeStyle = {
+  position: "absolute",
+  top: "-5px",
+  right: "-10px",
+  backgroundColor: "red",
+  color: "white",
+  borderRadius: "50%",
+  padding: "3px 6px",
+  fontSize: "12px",
+  fontWeight: "bold",
+};
+
 const Nav = () => {
   const auth = getAuth();
   const user = auth.currentUser;
   const [handle, setHandle] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0); // State to hold the count of unread notifications
   const [userAvatar, setUserAvatar] = useState("/default-avatar.png");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false); // New state for admin status
@@ -156,6 +171,29 @@ const Nav = () => {
     };
     fetchProfile();
   }, [user, db]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnreadNotifications = async () => {
+      try {
+        const notificationsRef = collection(db, "notifications");
+        const q = query(
+          notificationsRef,
+          where("userId", "==", user.uid), // Notifications for the current user
+          where("isRead", "==", false) // Only unread notifications
+        );
+        const notificationSnapshot = await getDocs(q);
+
+        // Set the count of unread notifications
+        setUnreadCount(notificationSnapshot.size);
+      } catch (error) {
+        console.error("Error fetching unread notifications:", error);
+      }
+    };
+
+    fetchUnreadNotifications();
+  }, [db, user]);
 
   const toggleDropdown = () => {
     setIsDropdownOpen((prevState) => !prevState);
@@ -204,8 +242,15 @@ const Nav = () => {
       </div>
 
       <div className="nav-right">
-        <NavLink activeClassName="selected" to="/notifications">
-          <NotificationIcon />
+      <NavLink activeClassName="selected" to="/notifications">
+          <div style={{ position: "relative" }}>
+            <NotificationIcon />
+            {unreadCount > 0 && (
+              <span style={badgeStyle}>
+                {unreadCount}
+              </span>
+            )}
+          </div>
         </NavLink>
         <NavLink activeClassName="selected" to="/conversations">
           <ChatIcon />
