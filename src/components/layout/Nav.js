@@ -5,7 +5,6 @@ import { getFirestore, collection, query, where, doc, getDocs, getDoc } from "fi
 import React, { useState, useEffect, useRef } from "react";
 import { HomeIcon, ExploreIcon, NotificationIcon, ChatIcon, BackIcon, AdminIcon } from "../Icons"; // Add your BackIcon here
 import ToggleTheme from "../ToggleTheme"; // Import the theme toggle component
-import { Link } from "react-router-dom";
 
 const Wrapper = styled.nav`
   height: 4rem;
@@ -172,6 +171,11 @@ const Nav = () => {
     fetchProfile();
   }, [user, db]);
 
+  // Function to update unread notification count
+  const updateUnreadCount = (count) => {
+    setUnreadCount(count);
+  };
+
   useEffect(() => {
     if (!user) return;
 
@@ -180,13 +184,11 @@ const Nav = () => {
         const notificationsRef = collection(db, "notifications");
         const q = query(
           notificationsRef,
-          where("userId", "==", user.uid), // Notifications for the current user
-          where("isRead", "==", false) // Only unread notifications
+          where("userId", "==", user.uid),
+          where("isRead", "==", false) // Fetch only unread notifications
         );
-        const notificationSnapshot = await getDocs(q);
-
-        // Set the count of unread notifications
-        setUnreadCount(notificationSnapshot.size);
+        const snapshot = await getDocs(q);
+        setUnreadCount(snapshot.size); // Set the initial unread count
       } catch (error) {
         console.error("Error fetching unread notifications:", error);
       }

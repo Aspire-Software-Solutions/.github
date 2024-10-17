@@ -56,7 +56,7 @@ const DismissButton = styled.button`
   cursor: pointer;
 `;
 
-const Notifications = () => {
+const Notifications = ({ updateUnreadCount }) => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fadingOutNotifications, setFadingOutNotifications] = useState({}); // Track which notifications are fading out
@@ -65,11 +65,11 @@ const Notifications = () => {
   const currentUser = auth.currentUser;
 
   useEffect(() => {
-    const fetchNotificationsWithHandles = async () => {
+    const fetchNotificationsWithHandlesAndUnreadCount = async () => {
       if (!currentUser) return;
-
+  
       setLoading(true);
-
+  
       try {
         const notificationsRef = collection(db, "notifications");
         const q = query(
@@ -77,53 +77,66 @@ const Notifications = () => {
           where("userId", "==", currentUser.uid),
           orderBy("createdAt", "desc")
         );
-
+  
         const notificationSnapshot = await getDocs(q);
-
+  
         const notificationsList = await Promise.all(
           notificationSnapshot.docs.map(async (notificationDoc) => {
             const notificationData = notificationDoc.data();
-
+  
             // Get the reference to the profile of the user who generated the notification
             const profileRef = doc(db, "profiles", notificationData.fromUserId);
             const profileSnap = await getDoc(profileRef);
-
+  
+            let fromUserHandle = notificationData.fromUserId;
             if (profileSnap.exists()) {
-              const fromUserHandle = profileSnap.data().handle; // Assume profile has a 'handle' field
-              return {
-                id: notificationDoc.id,
-                ...notificationData,
-                fromUserHandle: fromUserHandle || notificationData.fromUserId, // Fallback to UID if no handle
-              };
-            } else {
-              return {
-                id: notificationDoc.id,
-                ...notificationData,
-                fromUserHandle: notificationData.fromUserId, // Fallback to UID if no profile found
-              };
+              fromUserHandle = profileSnap.data().handle || notificationData.fromUserId;
             }
+  
+            return {
+              id: notificationDoc.id,
+              ...notificationData,
+              fromUserHandle,
+            };
           })
         );
-
+  
         setNotifications(notificationsList);
+  
+        // Calculate unread count based on the fetched notifications
+        const unreadCount = notificationsList.filter(n => !n.isRead).length;
+        updateUnreadCount(unreadCount); // Pass the unread count back to Nav.js
+  
         setLoading(false);
       } catch (error) {
-        console.error("Error fetching notifications: ", error);
+        console.error("Error fetching notifications:", error);
         setLoading(false);
       }
     };
-
-    fetchNotificationsWithHandles();
-  }, [db, currentUser]);
+  
+    fetchNotificationsWithHandlesAndUnreadCount();
+  }, [db, currentUser, updateUnreadCount]);
+  
 
   const markAsRead = async (notificationId) => {
     try {
       const notificationRef = doc(db, "notifications", notificationId);
-      await updateDoc(notificationRef, {
-        isRead: true,
-      });
+      await updateDoc(notificationRef, { isRead: true });
+
+      // Update the state to mark the notification as read
+      setNotifications((prev) =>
+        prev.map((notification) =>
+          notification.id === notificationId
+            ? { ...notification, isRead: true }
+            : notification
+        )
+      );
+
+      // Update unread count
+      const unreadCount = notifications.filter(n => !n.isRead).length - 1;
+      updateUnreadCount(unreadCount);
     } catch (error) {
-      console.error("Error marking notification as read: ", error);
+      console.error("Error marking notification as read:", error);
     }
   };
 
