@@ -1,7 +1,7 @@
 import styled from "styled-components";
 import { NavLink, useHistory, useLocation } from "react-router-dom"; // Import necessary hooks
 import { getAuth } from "firebase/auth"; // Import Firebase Auth
-import { getFirestore, collection, query, where, doc, getDocs, getDoc } from "firebase/firestore"; // Firestore imports
+import { getFirestore, collection, query, where, doc, getDocs, getDoc, onSnapshot } from "firebase/firestore"; // Firestore imports
 import React, { useState, useEffect, useRef } from "react";
 import { HomeIcon, ExploreIcon, NotificationIcon, ChatIcon, BackIcon, AdminIcon } from "../Icons"; // Add your BackIcon here
 import ToggleTheme from "../ToggleTheme"; // Import the theme toggle component
@@ -178,23 +178,21 @@ const Nav = () => {
 
   useEffect(() => {
     if (!user) return;
-
-    const fetchUnreadNotifications = async () => {
-      try {
-        const notificationsRef = collection(db, "notifications");
-        const q = query(
-          notificationsRef,
-          where("userId", "==", user.uid),
-          where("isRead", "==", false) // Fetch only unread notifications
-        );
-        const snapshot = await getDocs(q);
-        setUnreadCount(snapshot.size); // Set the initial unread count
-      } catch (error) {
-        console.error("Error fetching unread notifications:", error);
-      }
-    };
-
-    fetchUnreadNotifications();
+  
+    const notificationsRef = collection(db, "notifications");
+    const q = query(
+      notificationsRef,
+      where("userId", "==", user.uid),
+      where("isRead", "==", false) // Only unread notifications
+    );
+  
+    // Listen for real-time updates
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setUnreadCount(snapshot.size); // Update unreadCount state in real-time
+    });
+  
+    // Clean up the listener on component unmount
+    return () => unsubscribe();
   }, [db, user]);
 
   const toggleDropdown = () => {
