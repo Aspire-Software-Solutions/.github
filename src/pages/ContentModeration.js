@@ -133,6 +133,17 @@ const ModerationDashboard = () => {
     setFilteredContent(filtered);
   };
 
+  const getUserHandle = async (userId) => {
+    const profileRef = doc(db, "profiles", userId);
+    const profileSnap = await getDoc(profileRef);
+    if (profileSnap.exists()) {
+      return profileSnap.data().handle;  // Return the user's handle
+    } else {
+      console.error(`No profile found for user ${userId}`);
+      return userId;  // Fallback to userId if no handle is found
+    }
+  };
+
   const notifyApproved = async (postOwnerId, quickieId) => {
     const notificationsRef = collection(db, "notifications");
     await addDoc(notificationsRef, {
@@ -150,6 +161,7 @@ const ModerationDashboard = () => {
 
   const notifyDismissReport = async (postOwnerId, reportingUsers, quickieId) => {
     const notificationsRef = collection(db, "notifications");
+    const postOwnerHandle = await getUserHandle(postOwnerId);
   
     // Notify post owner
     await addDoc(notificationsRef, {
@@ -166,7 +178,7 @@ const ModerationDashboard = () => {
     for (let reporterId of reportingUsers) {
       await addDoc(notificationsRef, {
         fromUserId: "Moderation",
-        message: `Report update: Your report on ${postOwnerId} was deemed unacceptable and they have been issued a warning.`,
+        message: `Report update: Your report on ${postOwnerHandle}'s was deemed unacceptable and they have been issued a warning.`,
         userId: reporterId,
         quickieId: quickieId,  // Include quickieId for consistency
         type: "report_update",  // Type for report update
@@ -180,7 +192,8 @@ const ModerationDashboard = () => {
 
   const notifyRemoveContent = async (postOwnerId, reportingUsers, quickieId) => {
     const notificationsRef = collection(db, "notifications");
-  
+    const postOwnerHandle = await getUserHandle(postOwnerId);
+
     // Notify post owner
     await addDoc(notificationsRef, {
       fromUserId: "Moderation",
@@ -196,7 +209,7 @@ const ModerationDashboard = () => {
     for (let reporterId of reportingUsers) {
       await addDoc(notificationsRef, {
         fromUserId: "Moderation",
-        message: `Report update: ${postOwnerId}'s content was removed and they received a warning. Thank you for keeping our community safe!`,
+        message: `Report update: ${postOwnerHandle}'s content was removed and they received a warning. Thank you for keeping our community safe!`,
         userId: reporterId,
         quickieId: quickieId,  // Include quickieId for consistency
         type: "report_update",  // Type for report update
@@ -212,7 +225,8 @@ const ModerationDashboard = () => {
 
   const notifySuspendAccount = async (postOwnerId, reportingUsers, quickieId) => {
     const notificationsRef = collection(db, "notifications");
-  
+    const postOwnerHandle = await getUserHandle(postOwnerId);
+
     // Notify post owner
     await addDoc(notificationsRef, {
       fromUserId: "Moderation",
@@ -228,7 +242,7 @@ const ModerationDashboard = () => {
     for (let reporterId of reportingUsers) {
       await addDoc(notificationsRef, {
         fromUserId: "Moderation",
-        message: `Report update: ${postOwnerId} has been suspended for violating community guidelines. Thanks for keeping this community safe!`,
+        message: `Report update: ${postOwnerHandle}'s has been suspended for violating community guidelines. Thanks for keeping this community safe!`,
         userId: reporterId,
         quickieId: quickieId,  // Include quickieId for consistency
         type: "report_update",  // Type for report update
