@@ -185,10 +185,40 @@ const Notifications = ({ updateUnreadCount }) => {
               style={{ textDecoration: "none", color: "inherit" }}
             >
               <NotificationItem isRead={notification.isRead}>
-                {notification.type === "like" && <p>Hey! {notification.fromUserHandle} liked your quickie.</p>}
-                {notification.type === "follow" && <p>Good news! {notification.fromUserHandle} just followed you!</p>}
-                {notification.type === "comment" && <p>{notification.fromUserHandle} commented on your quickie.</p>}
-                <span>{new Date(notification.createdAt.seconds * 1000).toLocaleString()}</span>
+              {notification.type === "like" && <p>Hey! {notification.fromUserHandle} liked your quickie.</p>}
+              {notification.type === "follow" && <p>Good news! {notification.fromUserHandle} just followed you!</p>}
+              {notification.type === "comment" && <p>{notification.fromUserHandle} commented on your quickie.</p>}
+
+              {/* Handle content moderation-related notifications */}
+              {notification.type === "moderation" && (
+                <p style={{ color: 'red', fontWeight: 'bold' }}>{notification.message}</p>
+              )}
+
+              {/* Handle report updates */}
+              {notification.type === "report_update" && (
+                <p style={{ color: 'orange' }}>{notification.message}</p>
+              )}
+
+              {/* Handle content removed notifications */}
+              {notification.type === "content_removed" && (
+                <p style={{ color: 'darkred', fontWeight: 'bold' }}>
+                  {notification.message}
+                </p>
+              )}
+
+              {/* Handle account suspension notifications */}
+              {notification.type === "account_suspended" && (
+                <p style={{ color: 'purple', fontWeight: 'bold' }}>
+                  {notification.message}
+                </p>
+              )}
+
+              {/* Handle warning notifications */}
+              {notification.type === "warning" && (
+                <p style={{ color: 'darkorange' }}>
+                  {notification.message}
+                </p>
+              )}
 
                 {/* Dismiss button with checkmark */}
                 <DismissButton onClick={(e) => {

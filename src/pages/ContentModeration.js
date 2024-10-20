@@ -4,7 +4,7 @@ import { Container, Row, Col, Card, Button, Table, Form, Modal, Dropdown, Dropdo
 import { Link } from 'react-router-dom';
 import { getAuth } from "firebase/auth"; // Add this import
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
-import { collection, onSnapshot, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, getDoc, getDocs, updateDoc, addDoc, deleteDoc } from "firebase/firestore";
 import { db } from '../firebase'; // Ensure this is your Firebase configuration file
 
 const ModerationDashboard = () => {
@@ -66,6 +66,37 @@ const ModerationDashboard = () => {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const fetchReportsAndCheckQuickies = async () => {
+      try {
+        // Fetch all reports from Firestore
+        const reportsRef = collection(db, "reports");
+        const reportsSnapshot = await getDocs(reportsRef);
+  
+        // Loop through each report and check if the corresponding quickie exists
+        for (const reportDoc of reportsSnapshot.docs) {
+          const quickieId = reportDoc.id; // The quickieId is the same as the report ID
+  
+          // Check if the quickie exists in the 'quickies' collection
+          const quickieRef = doc(db, "quickies", quickieId);
+          const quickieSnap = await getDoc(quickieRef);
+  
+          if (!quickieSnap.exists()) {
+            // If the quickie doesn't exist, delete the report and log a message
+            console.log(`Quickie does not exist in the database (user probably deleted it). Deleting report ${quickieId} now!`);
+            await deleteDoc(doc(db, "reports", quickieId));
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching reports or checking quickies:", error);
+      }
+    };
+  
+    fetchReportsAndCheckQuickies(); // Call the function on component mount
+  }, [db]); // Ensure this useEffect depends on the Firestore instance
+  
+  
+
   // Function to handle opening the modal
   const handleShowModal = (report) => {
     setSelectedReport(report);
@@ -102,29 +133,148 @@ const ModerationDashboard = () => {
     setFilteredContent(filtered);
   };
 
+  const notifyApproved = async (postOwnerId, quickieId) => {
+    const notificationsRef = collection(db, "notifications");
+    await addDoc(notificationsRef, {
+      fromUserId: "Moderation",  // Indicating that the notification is from the moderator
+      message: "Report from Content Moderator. Your post was reported, but no action was taken.",
+      userId: postOwnerId,  // Notify the original post owner
+      quickieId: quickieId,  // Include quickieId for consistency
+      type: "moderation",  // Type to differentiate from other notifications
+      createdAt: new Date(),
+      isRead: false,
+    });
+  };
+  
+  
+
+  const notifyDismissReport = async (postOwnerId, reportingUsers, quickieId) => {
+    const notificationsRef = collection(db, "notifications");
+  
+    // Notify post owner
+    await addDoc(notificationsRef, {
+      fromUserId: "Moderation",
+      message: "Report from Content Moderator: Your post violated the community guidelines, but no action was taken at this moment. Consider this a warning.",
+      userId: postOwnerId,
+      quickieId: quickieId,  // Include quickieId for consistency
+      type: "warning",  // Type to indicate warning notification
+      createdAt: new Date(),
+      isRead: false,
+    });
+  
+    // Notify all reporting users
+    for (let reporterId of reportingUsers) {
+      await addDoc(notificationsRef, {
+        fromUserId: "Moderation",
+        message: `Report update: Your report on ${postOwnerId} was deemed unacceptable and they have been issued a warning.`,
+        userId: reporterId,
+        quickieId: quickieId,  // Include quickieId for consistency
+        type: "report_update",  // Type for report update
+        createdAt: new Date(),
+        isRead: false,
+      });
+    }
+  };
+  
+  
+
+  const notifyRemoveContent = async (postOwnerId, reportingUsers, quickieId) => {
+    const notificationsRef = collection(db, "notifications");
+  
+    // Notify post owner
+    await addDoc(notificationsRef, {
+      fromUserId: "Moderation",
+      message: "Report from Content Moderator: One of your posts has been deleted due to violating community guidelines. Subsequent violations may suspend your account.",
+      userId: postOwnerId,
+      quickieId: quickieId,  // Include quickieId for consistency
+      type: "content_removed",  // Type for content removal
+      createdAt: new Date(),
+      isRead: false,
+    });
+  
+    // Notify all reporting users
+    for (let reporterId of reportingUsers) {
+      await addDoc(notificationsRef, {
+        fromUserId: "Moderation",
+        message: `Report update: ${postOwnerId}'s content was removed and they received a warning. Thank you for keeping our community safe!`,
+        userId: reporterId,
+        quickieId: quickieId,  // Include quickieId for consistency
+        type: "report_update",  // Type for report update
+        createdAt: new Date(),
+        isRead: false,
+      });
+    }
+  
+    // Delete post from quickies collection
+    const quickieRef = doc(db, "quickies", quickieId);
+    await deleteDoc(quickieRef);
+  };
+
+  const notifySuspendAccount = async (postOwnerId, reportingUsers, quickieId) => {
+    const notificationsRef = collection(db, "notifications");
+  
+    // Notify post owner
+    await addDoc(notificationsRef, {
+      fromUserId: "Moderation",
+      message: "Content Moderator: Your content is unacceptable and your account has been suspended.",
+      userId: postOwnerId,
+      quickieId: quickieId,  // Include quickieId for consistency
+      type: "account_suspended",  // Type for account suspension
+      createdAt: new Date(),
+      isRead: false,
+    });
+  
+    // Notify all reporting users
+    for (let reporterId of reportingUsers) {
+      await addDoc(notificationsRef, {
+        fromUserId: "Moderation",
+        message: `Report update: ${postOwnerId} has been suspended for violating community guidelines. Thanks for keeping this community safe!`,
+        userId: reporterId,
+        quickieId: quickieId,  // Include quickieId for consistency
+        type: "report_update",  // Type for report update
+        createdAt: new Date(),
+        isRead: false,
+      });
+    }
+  
+    // Delete post from quickies collection
+    const quickieRef = doc(db, "quickies", quickieId);
+    await deleteDoc(quickieRef);
+  };
+  
+  
   const handleModerationAction = async (action) => {
-    const reportId = selectedReport.id;
+    const reportId = selectedReport.id;  // This is the report document ID, also the quickieId
+    const quickieId = reportId;  // Use the reportId as the quickieId since it's the same
+    const postOwnerId = selectedReport.user;  // User who posted the quickie
+    const reportingUsers = selectedReport.comments.map(comment => comment.user);  // Users who reported the quickie
+  
     try {
+      // Moderation actions
+      if (action === 'approve') {
+        await notifyApproved(postOwnerId, quickieId);
+      } else if (rejectReason === 'dismiss') {
+        await notifyDismissReport(postOwnerId, reportingUsers, quickieId);
+      } else if (rejectReason === 'warn') {
+        await notifyRemoveContent(postOwnerId, reportingUsers, quickieId);
+      } else if (rejectReason === 'suspend') {
+        await notifySuspendAccount(postOwnerId, reportingUsers, quickieId);
+      }
+  
+      // Update the status of the report in Firestore
       const reportRef = doc(db, "reports", reportId);
       await updateDoc(reportRef, {
         status: action === 'approve' ? 'Approved' : 'Rejected',
-        ...(action === 'reject' && { rejectReason })
+        ...(action === 'reject' && { rejectReason }),
       });
-
-      setOriginalContent(prevContent =>
-        prevContent.map(item => {
-          if (item.id === reportId) {
-            return { ...item, status: action === 'approve' ? 'Approved' : 'Rejected' };
-          }
-          return item;
-        })
-      );
-
+  
       handleCloseModal();
     } catch (error) {
-      console.error("Error updating document:", error);
+      console.error("Error processing moderation action:", error);
     }
   };
+  
+  
 
   if (loading) {
     return <div>Loading...</div>;
