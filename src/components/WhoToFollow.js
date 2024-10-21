@@ -7,8 +7,9 @@ import Avatar from "../styles/Avatar";
 import Follow from "./Profile/Follow";
 import Button from "../styles/Button";
 import CustomResponse from "./CustomResponse";
-import { getFirestore, collection, query, where, getDocs } from "firebase/firestore"; // Firestore imports
+import { getFirestore, collection, query, where, orderBy, limit, getDocs } from "firebase/firestore"; // Firestore imports
 import { getAuth } from "firebase/auth"; // Firebase Auth
+
 
 const defaultAvatarUrl = "/default-avatar.png"; // Default avatar
 
@@ -105,7 +106,13 @@ const WhoToFollow = () => {
       setLoading(true);
       try {
         const usersRef = collection(db, "profiles");
-        const q = query(usersRef, where("userId", "!=", currentUser?.uid)); // Exclude current user
+
+        const q = query(
+        usersRef, 
+        //where("userId", "!=", currentUser?.uid), // Exclude current user
+        orderBy("createdAt", "desc"), // Sort by recent users (replace with appropriate timestamp field)
+        limit(10)); // Limit to top 10 users
+
         const querySnapshot = await getDocs(q);
         
         const userList = querySnapshot.docs
