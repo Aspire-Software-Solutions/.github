@@ -29,27 +29,19 @@ const Wrapper = styled.div`
   }
 `;
 
-const SearchInput = ({ searchContext }) => {
+const SearchInput = () => {
   const term = useInput("");
   const [searchQuickieData, setSearchQuickieData] = useState([]);
   const [searchUserData, setSearchUserData] = useState([]);
   const [searchQuickieLoading, setSearchQuickieLoading] = useState(false);
   const [searchUserLoading, setSearchUserLoading] = useState(false);
 
-  const db = getFirestore();
+  const db = getFirestore(); // Initialize Firestore
 
   const handleSearch = async (e) => {
     e.preventDefault();
 
-    // Ensure prefix is added based on the context
-    let searchTerm = term.value;
-    if (searchContext === "TAGS" && !term.value.startsWith("#")) {
-      searchTerm = `#${term.value}`;
-    } else if (searchContext === "USERS" && !term.value.startsWith("@")) {
-      searchTerm = `@${term.value}`;
-    }
-
-    if (!searchTerm) {
+    if (!term.value) {
       return toast.error("Enter something to search");
     }
 
@@ -60,8 +52,8 @@ const SearchInput = ({ searchContext }) => {
       const quickiesRef = collection(db, "quickies");
 
       // Handle tag search if the term starts with #
-      if (searchTerm.startsWith("#")) {
-        const tagQuery = query(quickiesRef, where("tags", "array-contains", searchTerm));
+      if (term.value.startsWith("#")) {
+        const tagQuery = query(quickiesRef, where("tags", "array-contains", term.value));
         const tagSnapshot = await getDocs(tagQuery);
         const tagResults = tagSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setSearchQuickieData(tagResults);
@@ -69,8 +61,8 @@ const SearchInput = ({ searchContext }) => {
         // Search by quickies (text)
         const quickiesQuery = query(
           quickiesRef,
-          where("text", ">=", searchTerm),
-          where("text", "<=", searchTerm + "\uf8ff")
+          where("text", ">=", term.value),
+          where("text", "<=", term.value + "\uf8ff")
         );
         const quickiesSnapshot = await getDocs(quickiesQuery);
         const quickieResults = quickiesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -81,18 +73,20 @@ const SearchInput = ({ searchContext }) => {
       const usersRef = collection(db, "profiles");
       let usersQuery;
 
-      if (searchTerm.startsWith("@")) {
-        const cleanTerm = searchTerm.slice(1);
+      if (term.value.startsWith("@")) {
+        // If searching by handle, remove '@' for the query
+        const cleanTerm = term.value.slice(1); // Remove '@'
         usersQuery = query(
           usersRef,
           where("handle", ">=", cleanTerm),
           where("handle", "<=", cleanTerm + "\uf8ff")
         );
       } else {
+        // Search for full names if not using '@'
         usersQuery = query(
           usersRef,
-          where("firstname", ">=", searchTerm),
-          where("firstname", "<=", searchTerm + "\uf8ff")
+          where("firstname", ">=", term.value),
+          where("firstname", "<=", term.value + "\uf8ff")
         );
       }
 
@@ -101,7 +95,7 @@ const SearchInput = ({ searchContext }) => {
       setSearchUserData(userResults);
 
     } catch (err) {
-      console.error("Search error:", err);
+      console.error("Search error:", err);  // Add logging for better debugging
       displayError(err);
     } finally {
       setSearchQuickieLoading(false);
@@ -115,7 +109,7 @@ const SearchInput = ({ searchContext }) => {
       <Wrapper>
         <form onSubmit={handleSearch}>
           <input
-            placeholder={`Search by ${searchContext === "TAGS" ? 'tags' : 'users'}`}
+            placeholder="Search by tags, quickies, people"
             type="text"
             value={term.value}
             onChange={term.onChange}
@@ -127,7 +121,7 @@ const SearchInput = ({ searchContext }) => {
         searchUserLoading={searchUserLoading}
         quickies={searchQuickieData}
         users={searchUserData}
-        searchTerm={term.value}
+        searchTerm={term.value}  // Pass the search term to SearchResult
       />
     </>
   );

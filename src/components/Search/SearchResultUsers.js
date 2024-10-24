@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import { getFirestore, collection, getDocs } from "firebase/firestore";
 import { User } from "../WhoToFollow";
 import CustomResponse from "../CustomResponse";
 import Loader from "../Loader";
@@ -24,31 +24,21 @@ const SearchResultUsers = ({ searchTerm }) => {
       setLoading(true);
       try {
         const usersRef = collection(db, "profiles");
-        let usersQuery;
 
-        if (searchTerm.startsWith("@")) {
-          // If search term starts with "@", search for handle
-          const cleanTerm = searchTerm.slice(1); // Remove "@"
-          usersQuery = query(
-            usersRef,
-            where("handle", ">=", cleanTerm),
-            where("handle", "<=", cleanTerm + "\uf8ff")
-          );
-        } else {
-          // Search by first name and last name
-          usersQuery = query(
-            usersRef,
-            where("firstname", ">=", searchTerm),
-            where("firstname", "<=", searchTerm + "\uf8ff")
-          );
-        }
-
-        const querySnapshot = await getDocs(usersQuery);
+        // Fetch all users (or use limit if needed for performance)
+        const querySnapshot = await getDocs(usersRef);
         const usersList = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setUsers(usersList);
+
+        // Apply client-side filtering using regex
+        const regex = new RegExp(searchTerm.split(" ").join("|"), "i");
+        const filteredUsers = usersList.filter((user) =>
+          regex.test(user.fullname || "") || regex.test(user.handle || "")
+        );
+
+        setUsers(filteredUsers);
       } catch (error) {
         console.error("Error searching users:", error);
         setUsers([]);
