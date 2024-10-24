@@ -27,6 +27,7 @@ const SearchResultUsers = ({ searchTerm }) => {
 
         // Fetch all users (or use limit if needed for performance)
         const querySnapshot = await getDocs(usersRef);
+        //const querySnapshot = await getDocs(query(usersRef, limit(100))); // Fetch 100 users at a time
         const usersList = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
