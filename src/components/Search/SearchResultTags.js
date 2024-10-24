@@ -3,7 +3,7 @@ import styled from "styled-components";
 import Loader from "../Loader";
 import CustomResponse from "../CustomResponse";
 import Quickie from "../Quickie/Quickie";
-import { getFirestore, collection, query, where, getDocs } from "firebase/firestore"; // Firestore
+import { getFirestore, collection, getDocs } from "firebase/firestore"; // Firestore
 
 const Wrapper = styled.div`
   position: relative;
@@ -15,8 +15,7 @@ const SearchResultTags = ({ searchTerm = "" }) => {
   const db = getFirestore(); // Initialize Firestore
 
   useEffect(() => {
-    // Ensure searchTerm is a string and starts with '#'
-    if (typeof searchTerm !== "string" || !searchTerm.startsWith("#")) {
+    if (!searchTerm) {
       setQuickies([]);
       return;
     }
@@ -24,15 +23,22 @@ const SearchResultTags = ({ searchTerm = "" }) => {
     const fetchQuickiesByTag = async () => {
       setLoading(true);
       try {
-        // Query quickies from Firestore where the tags array contains the searchTerm
         const quickiesRef = collection(db, "quickies");
-        const quickiesQuery = query(quickiesRef, where("tags", "array-contains", searchTerm));
-        const querySnapshot = await getDocs(quickiesQuery);
+
+        // Fetch all quickies (or use limit for performance)
+        const querySnapshot = await getDocs(quickiesRef);
         const quickiesList = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-        setQuickies(quickiesList);
+
+        // Apply client-side filtering using regex
+        const regex = new RegExp(searchTerm.split(" ").join("|"), "i");
+        const filteredQuickies = quickiesList.filter(
+          (quickie) => Array.isArray(quickie.tags) && quickie.tags.some((tag) => regex.test(tag))
+        );
+
+        setQuickies(filteredQuickies);
       } catch (error) {
         console.error("Error fetching quickies by tag:", error);
         setQuickies([]);
@@ -46,8 +52,8 @@ const SearchResultTags = ({ searchTerm = "" }) => {
 
   if (loading) return <Loader />;
 
-  if (!searchTerm.startsWith("#")) {
-    return <CustomResponse text="Search for tags by typing # followed by the tag" />;
+  if (!searchTerm) {
+    return <CustomResponse text="Use the search bar to find quickies by tags" />;
   }
 
   return (
@@ -55,7 +61,7 @@ const SearchResultTags = ({ searchTerm = "" }) => {
       {quickies.length ? (
         quickies.map((quickie) => <Quickie key={quickie.id} quickie={quickie} />)
       ) : (
-        <CustomResponse text="No quickies found for that tag, try a different search" />
+        <CustomResponse text="No quickies found, try a different search" />
       )}
     </Wrapper>
   );
