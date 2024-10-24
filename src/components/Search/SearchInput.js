@@ -29,19 +29,27 @@ const Wrapper = styled.div`
   }
 `;
 
-const SearchInput = () => {
+const SearchInput = ({ searchContext }) => {
   const term = useInput("");
   const [searchQuickieData, setSearchQuickieData] = useState([]);
   const [searchUserData, setSearchUserData] = useState([]);
   const [searchQuickieLoading, setSearchQuickieLoading] = useState(false);
   const [searchUserLoading, setSearchUserLoading] = useState(false);
 
-  const db = getFirestore(); // Initialize Firestore
+  const db = getFirestore();
 
   const handleSearch = async (e) => {
     e.preventDefault();
 
-    if (!term.value) {
+    // Ensure prefix is added based on the context
+    let searchTerm = term.value;
+    if (searchContext === "TAGS" && !term.value.startsWith("#")) {
+      searchTerm = `#${term.value}`;
+    } else if (searchContext === "USERS" && !term.value.startsWith("@")) {
+      searchTerm = `@${term.value}`;
+    }
+
+    if (!searchTerm) {
       return toast.error("Enter something to search");
     }
 
@@ -52,8 +60,8 @@ const SearchInput = () => {
       const quickiesRef = collection(db, "quickies");
 
       // Handle tag search if the term starts with #
-      if (term.value.startsWith("#")) {
-        const tagQuery = query(quickiesRef, where("tags", "array-contains", term.value));
+      if (searchTerm.startsWith("#")) {
+        const tagQuery = query(quickiesRef, where("tags", "array-contains", searchTerm));
         const tagSnapshot = await getDocs(tagQuery);
         const tagResults = tagSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
         setSearchQuickieData(tagResults);
@@ -61,8 +69,8 @@ const SearchInput = () => {
         // Search by quickies (text)
         const quickiesQuery = query(
           quickiesRef,
-          where("text", ">=", term.value),
-          where("text", "<=", term.value + "\uf8ff")
+          where("text", ">=", searchTerm),
+          where("text", "<=", searchTerm + "\uf8ff")
         );
         const quickiesSnapshot = await getDocs(quickiesQuery);
         const quickieResults = quickiesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -73,20 +81,18 @@ const SearchInput = () => {
       const usersRef = collection(db, "profiles");
       let usersQuery;
 
-      if (term.value.startsWith("@")) {
-        // If searching by handle, remove '@' for the query
-        const cleanTerm = term.value.slice(1); // Remove '@'
+      if (searchTerm.startsWith("@")) {
+        const cleanTerm = searchTerm.slice(1);
         usersQuery = query(
           usersRef,
           where("handle", ">=", cleanTerm),
           where("handle", "<=", cleanTerm + "\uf8ff")
         );
       } else {
-        // Search for full names if not using '@'
         usersQuery = query(
           usersRef,
-          where("firstname", ">=", term.value),
-          where("firstname", "<=", term.value + "\uf8ff")
+          where("firstname", ">=", searchTerm),
+          where("firstname", "<=", searchTerm + "\uf8ff")
         );
       }
 
@@ -95,7 +101,7 @@ const SearchInput = () => {
       setSearchUserData(userResults);
 
     } catch (err) {
-      console.error("Search error:", err);  // Add logging for better debugging
+      console.error("Search error:", err);
       displayError(err);
     } finally {
       setSearchQuickieLoading(false);
@@ -109,7 +115,7 @@ const SearchInput = () => {
       <Wrapper>
         <form onSubmit={handleSearch}>
           <input
-            placeholder="Search by tags, quickies, people"
+            placeholder={`Search by ${searchContext === "TAGS" ? 'tags' : 'users'}`}
             type="text"
             value={term.value}
             onChange={term.onChange}
@@ -121,7 +127,7 @@ const SearchInput = () => {
         searchUserLoading={searchUserLoading}
         quickies={searchQuickieData}
         users={searchUserData}
-        searchTerm={term.value}  // Pass the search term to SearchResult
+        searchTerm={term.value}
       />
     </>
   );

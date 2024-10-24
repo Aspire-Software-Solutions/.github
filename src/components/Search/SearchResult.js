@@ -29,12 +29,20 @@ const SearchResult = ({
   tags,
   users,
   quickies,
-  searchTerm  // Pass the search term for filtering
+  searchTerm,
+  setSearchContext
 }) => {
   const [searchResultAction, setSearchResultAction] = useState("TAGS");
 
-  const changeToTags = () => setSearchResultAction("TAGS");
-  const changeToUsers = () => setSearchResultAction("USERS");
+  const changeToTags = () => {
+    setSearchResultAction("TAGS");
+    setSearchContext("TAGS");  // Set context for SearchInput
+  };
+
+  const changeToUsers = () => {
+    setSearchResultAction("USERS");
+    setSearchContext("USERS");  // Set context for SearchInput
+  };
 
   return (
     <Wrapper>
