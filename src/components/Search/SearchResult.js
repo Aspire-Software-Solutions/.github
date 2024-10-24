@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import SearchResultQuickies from "./SearchResultQuickies"; 
 import SearchResultTags from "./SearchResultTags";
 import SearchResultUsers from "./SearchResultUsers";
 
@@ -32,21 +31,14 @@ const SearchResult = ({
   quickies,
   searchTerm  // Pass the search term for filtering
 }) => {
-  const [searchResultAction, setSearchResultAction] = useState("QUICKIES");
+  const [searchResultAction, setSearchResultAction] = useState("TAGS");
 
-  const changeToQuickies = () => setSearchResultAction("QUICKIES");
   const changeToTags = () => setSearchResultAction("TAGS");
   const changeToUsers = () => setSearchResultAction("USERS");
 
   return (
     <Wrapper>
       <div className="tabs">
-        <span
-          className={searchResultAction === "QUICKIES" ? "active" : ""}
-          onClick={changeToQuickies}
-        >
-          Quickies
-        </span>
         <span
           className={searchResultAction === "TAGS" ? "active" : ""}
           onClick={changeToTags}
@@ -60,10 +52,6 @@ const SearchResult = ({
           Users
         </span>
       </div>
-
-      {searchResultAction === "QUICKIES" && (
-        <SearchResultQuickies quickies={quickies} loading={searchQuickiesLoading} />
-      )}
       {searchResultAction === "TAGS" && (
         <SearchResultTags tags={tags} loading={searchTagLoading} searchTerm={searchTerm} />
       )}
