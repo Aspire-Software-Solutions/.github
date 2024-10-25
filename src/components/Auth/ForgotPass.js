@@ -4,6 +4,17 @@ import { toast } from "react-toastify";
 import { Form, Button, Container, Row, Col } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+/**
+ * OBSERVER PATTERN:
+ * -----------------
+ * 
+ * The Observer Pattern is used to monitor changes in the password 
+ * input field, dynamically updating the password strength indicator 
+ * based on changes.
+ * 
+ * By observing changes to the password field, the UI can reactively 
+ * display password strength feedback to enhance user experience.
+ */
 const ForgotPass = ({ changeToLogin }) => {
   const [identifier, setIdentifier] = useState(""); // Email or username input
   const auth = getAuth();

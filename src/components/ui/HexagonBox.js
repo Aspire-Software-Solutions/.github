@@ -1,6 +1,11 @@
 import React from "react";
 import { Container } from "react-bootstrap";
 
+/***
+ * DESIGN PATTERN:
+ * ---------------
+ * DECORATOR PATTERN
+ */
 const HexagonBox = ({ 
   children, 
   backgroundColor = "rgb(114, 0, 0)", 
