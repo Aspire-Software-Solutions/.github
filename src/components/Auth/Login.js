@@ -18,6 +18,19 @@ import HexagonBox from "../ui/HexagonBox";
 // Adjust the path if necessary
 const companyLogo = "/companyLogo.png";
 
+/**
+ * TEMPLATE METHOD PATTERN:
+ * ------------------------
+ * 
+ * Defines a common structure for authentication forms,
+ * where shared steps (input collection, form validation) 
+ * are handled similarly, but unique steps (like additional 
+ * fields in signup or password strength check) are implemented 
+ * specifically for each component.
+ * 
+ * This approach ensures a consistent authentication flow while
+ * allowing flexibility for distinct actions in login and signup.
+ */
 const SignIn = ({ changeToSignup, changeToForgotPass }) => {
   const email = useInput("");
   const password = useInput("");

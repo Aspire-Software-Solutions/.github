@@ -1,6 +1,18 @@
 import React, { useState } from "react";
 import { PhoneAuthProvider, PhoneMultiFactorGenerator } from "firebase/auth";
 
+/**
+ * STRATEGY PATTERN:
+ * -----------------
+ * 
+ * Allows for interchangeable authentication strategies by selecting
+ * a specific multi-factor authentication method (e.g., SMS, email).
+ * This pattern enables switching between different verification 
+ * strategies without altering the underlying structure of the component.
+ * 
+ * Each verification method can have unique requirements while
+ * maintaining a consistent multi-factor login process.
+ */
 export default function MultiFactorLogin({ resolver, setUser }) {
   const [verificationCode, setVerificationCode] = useState("");
 

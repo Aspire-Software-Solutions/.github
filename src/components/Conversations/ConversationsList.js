@@ -6,6 +6,17 @@ import SearchInputForMessages from "./SearchInputForMessages"; // Use the search
 import Loader from "../Loader";
 import { Link } from "react-router-dom"; // For linking to conversation details
 
+/**
+ * COMPOSITE PATTERN:
+ * ------------------
+ * 
+ * Organizes the conversations list into a nested structure, 
+ * where each conversation is composed of messages. The Composite 
+ * Pattern simplifies managing complex hierarchical relationships.
+ * 
+ * This pattern is particularly useful for group conversations, 
+ * which may contain multiple participants and submessages.
+*/
 const ConversationsList = () => {
   const [selectedUsers, setSelectedUsers] = useState([]); // State to track selected users
   const [conversations, setConversations] = useState([]); // State to track conversations

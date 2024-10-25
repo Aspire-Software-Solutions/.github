@@ -15,6 +15,15 @@ const ConversationDetail = () => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
+  /**
+   * OBSERVER PATTERN:
+   * -----------------
+   * 
+   * Observes real-time updates to the messages in the conversation.
+   * By subscribing to `onSnapshot`, it listens for new messages and 
+   * re-renders the conversation when there’s a change, providing 
+   * dynamic, up-to-date content.
+  */
   useEffect(() => {
     if (!conversationId) {
       setError("Invalid conversation ID");
