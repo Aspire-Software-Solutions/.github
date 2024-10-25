@@ -37,6 +37,15 @@ const Profile = () => {
       // Real-time listener for profile data
       const profileQuery = query(collection(db, "profiles"), where("handle", "==", handle));
 
+      /**
+       * OBSERVER PATTERN:
+       * -----------------
+       * 
+       * Observes real-time updates to profile and followers data.
+       * By subscribing to `onSnapshot`, it listens for any changes 
+       * and automatically updates the UI, ensuring that the latest 
+       * profile or followers information is displayed.
+      */
       onSnapshot(profileQuery, (profileSnapshot) => {
         if (!profileSnapshot.empty) {
           const profileDoc = profileSnapshot.docs[0];

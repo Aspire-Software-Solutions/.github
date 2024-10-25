@@ -123,6 +123,14 @@ const Quickie = ({ quickie }) => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
 
+  /**
+   * OBSERVER PATTERN:
+   * -----------------
+   * 
+   * Observes real-time changes to the quickie data, particularly 
+   * updates in likes and comments. This pattern ensures that the 
+   * UI stays up-to-date without requiring manual refreshes.
+  */
   // Real-time listener for changes to the individual quickie (including likes)
   useEffect(() => {
     const quickieRef = doc(db, "quickies", id);

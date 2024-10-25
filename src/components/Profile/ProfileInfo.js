@@ -122,6 +122,14 @@ const ProfileInfo = ({ profile }) => {
   } = profile;
 
   return (
+  /**
+   * DECORATOR PATTERN:
+   * ------------------
+   * 
+   * Adds enhanced visual styling to profile elements without modifying 
+   * the underlying profile data. By using styled components like `Avatar` 
+   * and `CoverPhoto`, we decorate the UI, keeping logic separate from styling.
+  */
     <Wrapper>
       <CoverPhoto src={coverPhoto || defaultCoverPhotoUrl} alt="cover" />
       <Avatar className="avatar" lg src={avatarUrl || defaultAvatarUrl} alt="profile" />
