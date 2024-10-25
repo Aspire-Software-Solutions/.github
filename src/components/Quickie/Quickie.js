@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 import styled from "styled-components";
 import moment from "moment";
 import DeleteQuickie from "./DeleteQuickie";
@@ -122,7 +122,13 @@ const Quickie = ({ quickie }) => {
   const db = getFirestore();
   const auth = getAuth();
   const currentUser = auth.currentUser;
+  const history = useHistory();
 
+  const handleTagClick = (tag) => {
+    sessionStorage.setItem("searchTag", tag.replace(/^#/, "")); // Store tag in sessionStorage
+    history.push('/explore'); // Navigate to explore without query params
+  };
+  
   /**
    * OBSERVER PATTERN:
    * -----------------
@@ -333,7 +339,13 @@ const Quickie = ({ quickie }) => {
 
         <div className="tags">
           {tags.length ? tags.map((tag) => (
-            <span key={tag} className="tag">{tag}</span>
+            <span 
+              key={tag} 
+              className="tag"
+              onClick={() => handleTagClick(tag)} 
+            >
+              #{tag.replace(/^#/, "")}
+            </span>
           )) : null}
         </div>
 

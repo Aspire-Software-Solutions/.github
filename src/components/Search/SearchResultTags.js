@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from 'react-router-dom';
 import styled from "styled-components";
 import Loader from "../Loader";
 import CustomResponse from "../CustomResponse";
@@ -9,12 +10,26 @@ const Wrapper = styled.div`
   position: relative;
 `;
 
-const SearchResultTags = ({ searchTerm = "" }) => {
+// Custom hook to get query parameters from URL
+const useQuery = () => {
+  return new URLSearchParams(useLocation().search);
+};
+
+const SearchResultTags = ({ searchTerm = ""}) => {
   const [loading, setLoading] = useState(false);
   const [quickies, setQuickies] = useState([]);
   const db = getFirestore(); // Initialize Firestore
+  const query = useQuery().get('query') || searchTerm; // Default to searchTerm if no query param
 
-    /***
+  useEffect(() => {
+    if (query) {
+      // Use the query to perform a search or filter as needed
+      console.log('Searching for:', query);
+      // Call any relevant function to fetch data based on the query
+    }
+  }, [query]);
+
+  /***
    * DESIGN PATTERN:
    * ---------------
    * Observer Pattern
