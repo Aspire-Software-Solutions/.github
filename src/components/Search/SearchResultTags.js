@@ -53,7 +53,7 @@ const SearchResultTags = ({ searchTerm = "" }) => {
   if (loading) return <Loader />;
 
   if (!searchTerm) {
-    return <CustomResponse text="Use the search bar to find quickies by tags" />;
+    return <CustomResponse text="Use the search bar to find attacks by tags" />;
   }
 
   return (
