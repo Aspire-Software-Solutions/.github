@@ -9,7 +9,16 @@ const Wrapper = styled.div`
   align-items: center;
   justify-content: center;
 `;
-
+/***
+ * DESIGN PATTERN:
+ * ---------------
+ * NULL OBJECT PATTERN
+ * 
+ * Serves as a Null Object, for whenever
+ * the search result is empty or null. 
+ * This allows a consistant user interface for 
+ * edge cases where a query DNE.
+ */
 const NoSearchResult = ({ text }) => (
   <Wrapper>
     <p>{text}</p>

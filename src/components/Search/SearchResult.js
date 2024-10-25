@@ -31,6 +31,21 @@ const SearchResult = ({
   quickies,
   searchTerm  // Pass the search term for filtering
 }) => {
+
+  /**
+   * STRAGETY PATERN:
+   * ----------------
+   * 
+   * Dynamically switches between Tags and User 
+   * display views based on the searchResultAction state.
+   * 
+   * More detailed, the searchResultAction defines which stragety
+   * to use (tags or users)
+   * 
+   * This seperatiopn allows for different search results,
+   * and flexbility in adding additional functionality to each type of
+   * search, or adding more types of search. 
+   */
   const [searchResultAction, setSearchResultAction] = useState("TAGS");
 
   const changeToTags = () => setSearchResultAction("TAGS");

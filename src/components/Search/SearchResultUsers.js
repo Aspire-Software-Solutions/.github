@@ -14,6 +14,18 @@ const SearchResultUsers = ({ searchTerm }) => {
   const [users, setUsers] = useState([]);
   const db = getFirestore();
 
+
+  /***
+   * DESIGN PATTERN:
+   * ---------------
+   * Observer Pattern
+   * 
+   * the useEffect hooks act like an Observer,
+   * triggering fetchQuickiesByUsers whenever searchterm changes.
+   * 
+   * By having the observer pattern, the component continuously refreshes 
+   * its data, ensuring results are modular, and reusable.
+   */
   useEffect(() => {
     if (!searchTerm) {
       setUsers([]);

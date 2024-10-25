@@ -14,6 +14,17 @@ const SearchResultTags = ({ searchTerm = "" }) => {
   const [quickies, setQuickies] = useState([]);
   const db = getFirestore(); // Initialize Firestore
 
+    /***
+   * DESIGN PATTERN:
+   * ---------------
+   * Observer Pattern
+   * 
+   * the useEffect hooks act like an Observer,
+   * triggering fetchQuickiesByTags whenever searchterm changes.
+   * 
+   * By having the observer pattern, the component continuously refreshes 
+   * its data, ensuring results are modular, and reusable.
+   */
   useEffect(() => {
     if (!searchTerm) {
       setQuickies([]);

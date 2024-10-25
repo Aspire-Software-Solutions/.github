@@ -38,6 +38,16 @@ const SearchInput = () => {
 
   const db = getFirestore(); // Initialize Firestore
 
+  /**
+   * DESIGN PATTERN:
+   * ---------------
+   * FACADE PATTERN
+   * 
+   * Provides a simplfiied interface to 
+   * handle both, tag and user searches.
+   * In other words, it encapsulates the search logic by 
+   * ensuring the UI omly has to call handleSearch.
+   */
   const handleSearch = async (e) => {
     e.preventDefault();
 
