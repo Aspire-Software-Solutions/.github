@@ -50,21 +50,24 @@ const SearchResultTags = ({ searchTerm = ""}) => {
       setLoading(true);
       try {
         const quickiesRef = collection(db, "quickies");
-
-        // Fetch all quickies (or use limit for performance)
+    
+        // Fetch all quickies
         const querySnapshot = await getDocs(quickiesRef);
         const quickiesList = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
-
+    
         // Apply client-side filtering using regex
         const regex = new RegExp(searchTerm.split(" ").join("|"), "i");
         const filteredQuickies = quickiesList.filter(
           (quickie) => Array.isArray(quickie.tags) && quickie.tags.some((tag) => regex.test(tag))
         );
-
-        setQuickies(filteredQuickies);
+    
+        // Sort filtered quickies by 'createdAt' in descending order (newest first)
+        const sortedQuickies = filteredQuickies.sort((a, b) => b.createdAt - a.createdAt);
+    
+        setQuickies(sortedQuickies);
       } catch (error) {
         console.error("Error fetching quickies by tag:", error);
         setQuickies([]);
@@ -72,7 +75,7 @@ const SearchResultTags = ({ searchTerm = ""}) => {
         setLoading(false);
       }
     };
-
+    
     fetchQuickiesByTag();
   }, [searchTerm, db]);
 
