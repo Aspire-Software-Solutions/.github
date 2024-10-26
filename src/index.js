@@ -5,7 +5,6 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { initializeApp } from "firebase/app"; // Import Firebase App
 import { getAuth } from "firebase/auth";
 
-// Your Firebase configuration (replace with your actual config)
 const firebaseConfig = {
   apiKey: "AIzaSyA2Uf5nXzvN5aSRL0iaOepYxOW6m7e2yjM",
   authDomain: "fbproject-c27b4.firebaseapp.com",

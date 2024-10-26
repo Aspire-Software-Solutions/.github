@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
 import styled from "styled-components";
 import CoverPhoto from "../../styles/CoverPhoto";
 import Avatar from "../../styles/Avatar";
@@ -8,6 +8,7 @@ import Follow from "./Follow";
 import { LinkIcon } from "../Icons"; // Removed LocationIcon and DobIcon since we don't use location/dob anymore
 import CustomResponse from "../CustomResponse";
 import { getAuth } from "firebase/auth";
+import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc } from "firebase/firestore"; // Firestore imports
 
 const defaultAvatarUrl = "/default-avatar.png";
 const defaultCoverPhotoUrl = "/default-cover-photo.png";
@@ -60,7 +61,7 @@ const Wrapper = styled.div`
       position: relative;
       top: 3px;
     }
-    
+
     &:hover {
       color: ${(props) => props.theme.accentColor}; /* Change color on hover */
     }
@@ -98,6 +99,8 @@ const Wrapper = styled.div`
 const ProfileInfo = ({ profile }) => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
+  const history = useHistory(); // Moved useHistory inside the component
+  const db = getFirestore(); // Firestore instance
 
   // Determine if the logged-in user is viewing their own profile
   const isSelf = currentUser && profile && currentUser.uid === profile.userId;
@@ -119,7 +122,49 @@ const ProfileInfo = ({ profile }) => {
     handle,
     firstname,
     lastname,
+    fullname, // Added fullname field
   } = profile;
+
+  // Handle the display name logic
+  const displayName = firstname && lastname ? `${firstname} ${lastname}` : fullname || "No name provided";
+
+  const handleStartConversation = async (userId, userHandle) => {
+    if (!currentUser) return;
+
+    try {
+      // Check if a conversation between the two users already exists
+      const conversationsRef = collection(db, "conversations");
+      const q = query(conversationsRef, where("members", "array-contains", currentUser.uid));
+      const querySnapshot = await getDocs(q);
+
+      let conversationId = null;
+
+      querySnapshot.forEach((doc) => {
+        const conversation = doc.data();
+        if (conversation.members.includes(userId)) {
+          conversationId = doc.id;
+        }
+      });
+
+      // If no conversation exists, create one
+      if (!conversationId) {
+        const newConversation = await addDoc(collection(db, "conversations"), {
+          members: [currentUser.uid, userId],
+          isGroup: false,
+          lastMessage: "",
+          lastMessageAt: serverTimestamp(),
+          readBy: [currentUser.uid]
+        });
+
+        conversationId = newConversation.id;
+      }
+
+      // Redirect to the conversation page
+      history.push(`/conversations/${conversationId}`);
+    } catch (error) {
+      console.error("Error starting conversation:", error);
+    }
+  };
 
   return (
     <Wrapper>
@@ -133,16 +178,26 @@ const ProfileInfo = ({ profile }) => {
           </Button>
         </Link>
       ) : (
-        <Follow
-          relative
-          className="action-btn"
-          isFollowing={isFollowing}
-          userId={profile.userId}
-        />
+        <>
+          <Follow
+            relative
+            className="action-btn"
+            isFollowing={isFollowing}
+            userId={profile.userId}
+          />
+          <Button
+            relative
+            outline
+            className="action-btn"
+            onClick={() => handleStartConversation(profile.userId, profile.handle)}
+          >
+            Message
+          </Button>
+        </>
       )}
 
       <div className="profile-name-handle">
-        <span className="fullname">{`${firstname} ${lastname}`}</span>
+        <span className="fullname">{displayName}</span> {/* Updated to use displayName */}
         <span className="handle">{`@${handle}`}</span>
       </div>
 

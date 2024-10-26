@@ -1,10 +1,25 @@
 import styled from "styled-components";
-import { NavLink, useHistory, useLocation } from "react-router-dom"; // Import necessary hooks
-import { getAuth } from "firebase/auth"; // Import Firebase Auth
-import { getFirestore, collection, query, where, doc, getDocs, getDoc, onSnapshot } from "firebase/firestore"; // Firestore imports
+import { NavLink, useHistory, useLocation } from "react-router-dom";
+import { getAuth } from "firebase/auth";
+import {
+  getFirestore,
+  collection,
+  query,
+  where,
+  doc,
+  getDoc,
+  onSnapshot,
+} from "firebase/firestore";
 import React, { useState, useEffect, useRef } from "react";
-import { HomeIcon, ExploreIcon, NotificationIcon, ChatIcon, BackIcon, AdminIcon } from "../Icons"; // Add your BackIcon here
-import ToggleTheme from "../ToggleTheme"; // Import the theme toggle component
+import {
+  HomeIcon,
+  ExploreIcon,
+  NotificationIcon,
+  ChatIcon,
+  BackIcon,
+  AdminIcon,
+} from "../Icons";
+import ToggleTheme from "../ToggleTheme";
 
 const Wrapper = styled.nav`
   height: 4rem;
@@ -100,7 +115,8 @@ const Wrapper = styled.nav`
     width: 32px;
     height: 32px;
     cursor: pointer;
-    transition: transform 0.3s ease, fill 0.3s ease, stroke 0.3s ease; /* Smooth transition for fill and stroke */
+    transition: transform 0.3s ease, fill 0.3s ease,
+      stroke 0.3s ease; /* Smooth transition for fill and stroke */
     fill: white;
   }
 
@@ -139,7 +155,8 @@ const Nav = () => {
   const auth = getAuth();
   const user = auth.currentUser;
   const [handle, setHandle] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0); // State to hold the count of unread notifications
+  const [unreadCount, setUnreadCount] = useState(0); // Count of unread notifications
+  const [unreadConversationsCount, setUnreadConversationsCount] = useState(0); // NEW: Count of conversations with unread messages
   const [userAvatar, setUserAvatar] = useState("/default-avatar.png");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false); // New state for admin status
@@ -152,7 +169,8 @@ const Nav = () => {
   const showBackButton =
     location.pathname.includes("/followers") ||
     location.pathname.includes("/following") ||
-    location.pathname.includes("/status");
+    location.pathname.includes("/status") ||
+    location.pathname.includes("/conversations/");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -176,22 +194,59 @@ const Nav = () => {
     setUnreadCount(count);
   };
 
+  // Fetch unread notifications count
   useEffect(() => {
     if (!user) return;
-  
+
     const notificationsRef = collection(db, "notifications");
     const q = query(
       notificationsRef,
       where("userId", "==", user.uid),
       where("isRead", "==", false) // Only unread notifications
     );
-  
+
     // Listen for real-time updates
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setUnreadCount(snapshot.size); // Update unreadCount state in real-time
     });
-  
+
     // Clean up the listener on component unmount
+    return () => unsubscribe();
+  }, [db, user]);
+
+  // NEW: Fetch unread conversations count
+  useEffect(() => {
+    if (!user) return;
+
+    const conversationsRef = collection(db, "conversations");
+    const q = query(
+      conversationsRef,
+      where("members", "array-contains", user.uid)
+    );
+
+    // Listen for real-time updates on conversations
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let count = 0;
+
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const lastMessageTimestamp = data.lastMessageTimestamp;
+        const lastRead = data.lastRead ? data.lastRead[user.uid] : null;
+
+        if (lastMessageTimestamp) {
+          // Compare lastMessageTimestamp with lastRead[user.uid]
+          if (
+            !lastRead ||
+            lastRead.toMillis() < lastMessageTimestamp.toMillis()
+          ) {
+            count += 1;
+          }
+        }
+      });
+
+      setUnreadConversationsCount(count); // Update the state with the count
+    });
+
     return () => unsubscribe();
   }, [db, user]);
 
@@ -242,18 +297,20 @@ const Nav = () => {
       </div>
 
       <div className="nav-right">
-      <NavLink activeClassName="selected" to="/notifications">
+        <NavLink activeClassName="selected" to="/notifications">
           <div style={{ position: "relative" }}>
             <NotificationIcon />
-            {unreadCount > 0 && (
-              <span style={badgeStyle}>
-                {unreadCount}
-              </span>
-            )}
+            {unreadCount > 0 && <span style={badgeStyle}>{unreadCount}</span>}
           </div>
         </NavLink>
+
         <NavLink activeClassName="selected" to="/conversations">
-          <ChatIcon />
+          <div style={{ position: "relative" }}>
+            <ChatIcon />
+            {unreadConversationsCount > 0 && (
+              <span style={badgeStyle}>{unreadConversationsCount}</span>
+            )}
+          </div>
         </NavLink>
 
         <div className="profile-menu">
