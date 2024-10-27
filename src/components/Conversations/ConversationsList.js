@@ -12,6 +12,7 @@ import {
   arrayRemove,
   addDoc,
   serverTimestamp,
+  deleteDoc
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
@@ -323,22 +324,30 @@ const ConversationsList = () => {
   };  
 
   const handleDeleteConversation = async (conversationId) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to remove this conversation from your list?"
-    );
+    const confirmDelete = window.confirm("Are you sure you want to remove this conversation from your list?");
     if (confirmDelete) {
       try {
         const conversationRef = doc(db, "conversations", conversationId);
+        
+        // Remove current user from the members list
         await updateDoc(conversationRef, {
           members: arrayRemove(currentUser.uid),
         });
   
-        console.log("User removed from conversation.");
+        // Check if there are remaining members
+        const updatedConversation = await getDoc(conversationRef);
+        if (updatedConversation.exists() && updatedConversation.data().members.length === 0) {
+          await deleteDoc(conversationRef);
+          console.log("Conversation deleted because it has no members left.");
+        } else {
+          console.log("User removed from conversation.");
+        }
       } catch (error) {
         console.error("Error removing user from conversation:", error);
       }
     }
-  };  
+  };
+  
   
   
 

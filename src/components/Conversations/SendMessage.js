@@ -15,19 +15,19 @@ import {
   ref,
   uploadBytesResumable,
   getDownloadURL,
-} from "firebase/storage"; // Firebase Storage imports
-import { toast } from "react-toastify"; // For notifications
+} from "firebase/storage";
+import { toast } from "react-toastify";
 import Button from "../../styles/Button";
-import { CloseIcon, UploadFileIcon } from "../Icons"; // Import the UploadFileIcon alongside CloseIcon
+import { CloseIcon, UploadFileIcon } from "../Icons";
 
 const SendMessage = ({ conversationId, setMessageSent }) => {
   const [messageText, setMessageText] = useState("");
   const [mediaFile, setMediaFile] = useState(null);
-  const [mediaUrl, setMediaUrl] = useState(null); // Preview the media file
-  const [hasMessageSent, setHasMessageSent] = useState(false); // Track if a message has been sent
+  const [mediaUrl, setMediaUrl] = useState(null);
+  const [hasMessageSent, setHasMessageSent] = useState(false); // Tracks if a message was sent
   const auth = getAuth();
   const db = getFirestore();
-  const storage = getStorage(); // Firebase Storage instance
+  const storage = getStorage();
   const currentUser = auth.currentUser;
 
   const handleSendMessage = async (e) => {
@@ -39,13 +39,10 @@ const SendMessage = ({ conversationId, setMessageSent }) => {
 
       // If there is a media file, upload it to Firebase Storage
       if (mediaFile) {
-        const fileType = mediaFile.type.split("/")[0]; // Check if it's an image or video
-        const storageRef = ref(
-          storage,
-          `conversations/${conversationId}/${mediaFile.name}`
-        ); // Create a storage reference
-
+        const fileType = mediaFile.type.split("/")[0];
+        const storageRef = ref(storage, `conversations/${conversationId}/${mediaFile.name}`);
         const uploadTask = uploadBytesResumable(storageRef, mediaFile);
+
         uploadedMediaUrl = await new Promise((resolve, reject) => {
           uploadTask.on(
             "state_changed",
@@ -83,46 +80,43 @@ const SendMessage = ({ conversationId, setMessageSent }) => {
         lastMessage: messageText || (mediaFile ? "Media" : ""),
         lastMessageTimestamp: messageTimestamp,
         lastMessageSenderId: currentUser.uid,
-        [`lastRead.${currentUser.uid}`]: messageTimestamp, // Update lastRead for current user
+        [`lastRead.${currentUser.uid}`]: messageTimestamp,
       });
 
-      setHasMessageSent(true);
+      setHasMessageSent(true); // Mark as sent to prevent deletion
       setMessageSent(true); // Notify parent that a message has been sent
       setMessageText("");
       setMediaFile(null);
-      setMediaUrl(null); // Clear the media preview
+      setMediaUrl(null);
     } catch (error) {
       console.error("Error sending message:", error);
     }
   };
 
-  // Handle file selection (image or video) and enforce file size limits
-  const handleMediaUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const fileType = file.type.split("/")[0]; // Check if it's an image or video
-
-    if (fileType === "image" && file.size > 5 * 1024 * 1024) {
-      toast.error("Image must be smaller than 5MB");
-      return;
-    }
-
-    if (fileType === "video" && file.size > 100 * 1024 * 1024) {
-      toast.error("Video must be smaller than 100MB");
-      return;
-    }
-
-    setMediaFile(file);
-    setMediaUrl(URL.createObjectURL(file)); // Preview the selected media
-  };
-
-  // Handle removing the selected media file
   const handleRemoveMedia = () => {
     setMediaFile(null);
     setMediaUrl(null);
   };
+  
+  const handleMediaUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+  
+    const fileType = file.type.split("/")[0];
+    if (fileType === "image" && file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be smaller than 5MB");
+      return;
+    }
+    if (fileType === "video" && file.size > 100 * 1024 * 1024) {
+      toast.error("Video must be smaller than 100MB");
+      return;
+    }
+  
+    setMediaFile(file);
+    setMediaUrl(URL.createObjectURL(file));
+  };
 
+  // Clean up empty conversations when the user leaves the page without sending a message
   useEffect(() => {
     const handleBeforeUnload = async () => {
       if (!hasMessageSent) {
@@ -155,7 +149,6 @@ const SendMessage = ({ conversationId, setMessageSent }) => {
           style={{ flex: 1 }}
         />
 
-        {/* Media Preview */}
         {mediaUrl && (
           <div style={{ position: "relative", display: "inline-block" }}>
             <div
@@ -165,7 +158,7 @@ const SendMessage = ({ conversationId, setMessageSent }) => {
                 right: 5,
                 cursor: "pointer",
                 zIndex: 2,
-                color: "red", // Make the "X" button red for better visibility
+                color: "red",
                 backgroundColor: "rgba(255, 255, 255, 0.7)",
                 borderRadius: "50%",
               }}
@@ -185,7 +178,6 @@ const SendMessage = ({ conversationId, setMessageSent }) => {
           </div>
         )}
 
-        {/* Custom File Upload Icon */}
         <label
           htmlFor="mediaUpload"
           style={{
@@ -202,7 +194,7 @@ const SendMessage = ({ conversationId, setMessageSent }) => {
           type="file"
           accept="image/*, video/*"
           onChange={handleMediaUpload}
-          style={{ display: "none" }} // Hide the actual file input
+          style={{ display: "none" }}
         />
 
         <Button type="submit">Send</Button>

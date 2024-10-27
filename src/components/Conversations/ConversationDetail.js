@@ -67,28 +67,30 @@ const ConversationDetail = () => {
     const fetchMessages = () => {
       const messagesRef = collection(db, `conversations/${conversationId}/messages`);
       const q = query(messagesRef, orderBy("timestamp", "asc"));
-
+    
       const unsubscribe = onSnapshot(q, async (querySnapshot) => {
         const msgs = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-
+    
         setMessages(msgs);
         setLoading(false);
-
+    
         await updateLastReadIfNeeded(msgs);
-
+    
+        // Scroll to the oldest unread message if there is one; otherwise, scroll to the bottom
         const oldestUnreadIndex = msgs.findIndex(
           (msg) => !(msg.readBy && msg.readBy.includes(currentUser.uid))
         );
-
+    
         if (oldestUnreadIndex !== -1) {
           scrollToMessage(oldestUnreadIndex);
-        } else {
-          scrollToBottom();
         }
+    
+        // Always scroll to the bottom whenever messages update to ensure the latest message is in view
+        scrollToBottom();
       });
-
+    
       return unsubscribe;
-    };
+    };    
 
     const unsubscribe = fetchMessages();
 
@@ -98,22 +100,21 @@ const ConversationDetail = () => {
   }, [conversationId, db, currentUser]);
 
   const handleDeleteConversation = async () => {
-    if (!messageSent) {
-      const messagesRef = collection(db, `conversations/${conversationId}/messages`);
-      const querySnapshot = await getDocs(messagesRef);
-      if (querySnapshot.empty) {
-        const conversationRef = doc(db, "conversations", conversationId);
-        await deleteDoc(conversationRef);
-        console.log("Conversation deleted due to no messages.");
-      }
+    const messagesRef = collection(db, `conversations/${conversationId}/messages`);
+    const querySnapshot = await getDocs(messagesRef);
+    if (querySnapshot.empty) {
+      const conversationRef = doc(db, "conversations", conversationId);
+      await deleteDoc(conversationRef);
+      console.log("Conversation deleted due to no messages.");
     }
   };
 
-  useEffect(() => {
-    return () => {
-      handleDeleteConversation();
-    };
-  }, [messageSent, conversationId]);
+// Call this on component unmount if no message was sent
+useEffect(() => {
+  return () => {
+    handleDeleteConversation();
+  };
+}, [conversationId, messageSent]);
 
   if (loading) return <Loader />;
   if (error) return <div>{error}</div>;
