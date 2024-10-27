@@ -29,13 +29,6 @@ const ConversationDetail = () => {
   const currentUser = auth.currentUser;
   const history = useHistory();
   const messagesEndRef = useRef(null);
-  const messageRefs = useRef([]);
-
-  const scrollToMessage = (index) => {
-    if (messageRefs.current[index]) {
-      messageRefs.current[index].scrollIntoView({ behavior: "smooth" });
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -67,30 +60,18 @@ const ConversationDetail = () => {
     const fetchMessages = () => {
       const messagesRef = collection(db, `conversations/${conversationId}/messages`);
       const q = query(messagesRef, orderBy("timestamp", "asc"));
-    
+
       const unsubscribe = onSnapshot(q, async (querySnapshot) => {
         const msgs = querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-    
+
         setMessages(msgs);
         setLoading(false);
-    
+
         await updateLastReadIfNeeded(msgs);
-    
-        // Scroll to the oldest unread message if there is one; otherwise, scroll to the bottom
-        const oldestUnreadIndex = msgs.findIndex(
-          (msg) => !(msg.readBy && msg.readBy.includes(currentUser.uid))
-        );
-    
-        if (oldestUnreadIndex !== -1) {
-          scrollToMessage(oldestUnreadIndex);
-        }
-    
-        // Always scroll to the bottom whenever messages update to ensure the latest message is in view
-        scrollToBottom();
       });
-    
+
       return unsubscribe;
-    };    
+    };
 
     const unsubscribe = fetchMessages();
 
@@ -98,6 +79,13 @@ const ConversationDetail = () => {
       if (unsubscribe) unsubscribe();
     };
   }, [conversationId, db, currentUser]);
+
+  // Scroll to the latest message whenever the conversation loads or messages update
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      scrollToBottom();
+    }
+  }, [messages, loading]);
 
   const handleDeleteConversation = async () => {
     const messagesRef = collection(db, `conversations/${conversationId}/messages`);
@@ -109,12 +97,12 @@ const ConversationDetail = () => {
     }
   };
 
-// Call this on component unmount if no message was sent
-useEffect(() => {
-  return () => {
-    handleDeleteConversation();
-  };
-}, [conversationId, messageSent]);
+  // Call this on component unmount if no message was sent
+  useEffect(() => {
+    return () => {
+      handleDeleteConversation();
+    };
+  }, [conversationId, messageSent]);
 
   if (loading) return <Loader />;
   if (error) return <div>{error}</div>;
@@ -125,7 +113,7 @@ useEffect(() => {
       <div className="messages" style={{ maxHeight: "400px", overflowY: "auto" }}>
         {messages.length > 0 ? (
           messages.map((msg, index) => (
-            <div key={msg.id} ref={(el) => (messageRefs.current[index] = el)}>
+            <div key={msg.id}>
               <Message message={msg} currentUserId={currentUser.uid} />
             </div>
           ))
