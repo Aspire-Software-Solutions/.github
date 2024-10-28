@@ -4,7 +4,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { ThemeProvider as StyledThemeProvider } from "styled-components";
 import GlobalStyle from "./styles/GlobalStyle";
 import { ThemeContext } from "./context/ThemeContext";
-import Router from "./AppRouter"; // Always render Router
+import Router from "./AppRouter";
 import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase Auth
 
 const App = () => {

@@ -84,6 +84,7 @@ const AppRouter = () => {
                   <Route exact path="/notifications" component={Notifications} />
                   <Route exact path="/bookmarks" component={Bookmarks} />
                   <Route exact path="/conversations" component={ConversationsList} />
+                  <Route exact path="/conversations/:conversationId" component={ConversationDetail}/>
                   <Route exact path="/settings/profile" component={EditProfile} />
                   <Route exact path="/:handle" component={Profile} />
                   <Route exact path="/:handle/:type" component={FollowersFollowing} />
