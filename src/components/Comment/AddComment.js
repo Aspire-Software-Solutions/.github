@@ -47,6 +47,17 @@ const Wrapper = styled.div`
   }
 `;
 
+/**
+ * FACTORY PATTERN:
+ * ----------------
+ * 
+ * This pattern encapsulates the logic for creating
+ * a new comment object with predefined properties.
+ * 
+ * By using a factory, we ensure all comments created
+ * in `AddComment.js` follow the same structure, making
+ * it easier to maintain and add new properties if needed.
+ */
 const AddComment = ({ id }) => {
   const comment = useInput("");
   const [userAvatar, setUserAvatar] = useState(defaultAvatarUrl); // State to track avatar

@@ -14,6 +14,14 @@ const Wrapper = styled.div`
   margin-bottom: 7rem;
 `;
 
+/**
+ * TEMPLATE METHOD PATTERN:
+ * ------------------------
+ * 
+ * Provides a template for handling quickie interactions.
+ * Each specific interaction (like, comment, share) can be implemented 
+ * as a separate method, following the shared sequence of actions.
+*/
 const MasterQuickie = () => {
   const { quickieId } = useParams();
   const [quickieData, setQuickieData] = useState(null);
