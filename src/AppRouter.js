@@ -3,9 +3,8 @@ import {
   BrowserRouter as Router,
   Switch,
   Route,
-  Redirect,
 } from "react-router-dom";
-import { getAuth } from "firebase/auth"; // Firebase Auth import
+import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase Auth import
 import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firestore imports
 import Layout from "./styles/Layout";
 import Nav from "./components/layout/Nav";
@@ -17,17 +16,26 @@ import Notifications from "./pages/Notifications";
 import Explore from "./pages/Explore";
 import EditProfile from "./components/Profile/EditProfile";
 import FollowersFollowing from "./components/Profile/FollowersFollowing";
-import ConversationsList from "./components/Conversations/ConversationsList";
-import ConversationDetail from "./components/Conversations/ConversationDetail";
+import ConversationsList from "./components/Conversations/ConversationDetail";
 import ModerationDashboard from "./pages/ContentModeration"; // Content Moderation Page
-import { AdminIcon } from "./components/Icons"; // AdminIcon import
+import Auth from "./components/Auth/Auth"; // Import Auth directly for unauthenticated users
 
 const AppRouter = () => {
   const auth = getAuth();
-  const user = auth.currentUser;
+  const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isProfileLoaded, setIsProfileLoaded] = useState(false);
   const db = getFirestore();
+
+  useEffect(() => {
+    // Watch for authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsProfileLoaded(true); // Set as loaded even if not signed in
+      console.log("Auth state changed:", currentUser ? "User is logged in" : "No user logged in");
+    });
+    return () => unsubscribe();
+  }, [auth]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -39,13 +47,9 @@ const AppRouter = () => {
             const profileData = profileSnap.data();
             setIsAdmin(profileData.isAdmin || false);
           }
-          setIsProfileLoaded(true);
         } catch (error) {
           console.error("Error fetching profile:", error);
-          setIsProfileLoaded(true); // In case of error, allow other content to load
         }
-      } else {
-        setIsProfileLoaded(true);
       }
     };
     fetchProfile();
@@ -58,39 +62,39 @@ const AppRouter = () => {
   return (
     <Router>
       <Switch>
-        {/* Independent Admin-Only Route (No Nav, No Layout) */}
-        {isAdmin && (
-          <Route
-            path="/ContentModeration"
-            render={() => <ModerationDashboard user={user} isAdmin={isAdmin} />}
-          />
-        )}
+        {/* Route accessible to everyone */}
+        <Route exact path="/:handle/status/:quickieId" component={MasterQuickie} />
 
-        {/* Public Routes with Layout and Nav */}
-        <Route>
-          <Nav />
-          <Layout>
-            <Switch>
-              <Route exact path="/" component={Home} />
-              <Route exact path="/explore" component={Explore} />
-              <Route exact path="/notifications" component={Notifications} />
-              <Route exact path="/bookmarks" component={Bookmarks} />
-              <Route exact path="/conversations" component={ConversationsList} />
+        {/* Routes accessible only to authenticated users */}
+        {user ? (
+          <>
+            {isAdmin && (
               <Route
-                exact
-                path="/conversations/:conversationId"
-                component={ConversationDetail}
+                path="/ContentModeration"
+                render={() => <ModerationDashboard user={user} isAdmin={isAdmin} />}
               />
-              <Route exact path="/settings/profile" component={EditProfile} />
-              <Route exact path="/:handle/status/:quickieId" component={MasterQuickie} />
-              <Route exact path="/:handle" component={Profile} />
-              <Route exact path="/:handle/:type" component={FollowersFollowing} />
-
-              {/* Catch-All Redirect */}
-              <Redirect from="*" to="/" />
-            </Switch>
-          </Layout>
-        </Route>
+            )}
+            <Route>
+              <Nav />
+              <Layout>
+                <Switch>
+                  <Route exact path="/" component={Home} />
+                  <Route exact path="/explore" component={Explore} />
+                  <Route exact path="/notifications" component={Notifications} />
+                  <Route exact path="/bookmarks" component={Bookmarks} />
+                  <Route exact path="/conversations" component={ConversationsList} />
+                  <Route exact path="/settings/profile" component={EditProfile} />
+                  <Route exact path="/:handle" component={Profile} />
+                  <Route exact path="/:handle/:type" component={FollowersFollowing} />
+                  {/* Catch-All Redirect */}
+                  <Route render={() => <Home />} />
+                </Switch>
+              </Layout>
+            </Route>
+          </>
+        ) : (
+          <Auth /> // Render Auth for unauthenticated users
+        )}
       </Switch>
     </Router>
   );

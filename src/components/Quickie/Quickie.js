@@ -159,7 +159,7 @@ const Quickie = ({ quickie }) => {
     return () => unsubscribe(); // Clean up listener
   }, [db, userId]);
 
-  // Fetch bookmark status on component mount
+  // Fetch bookmark status on component mount if user is logged in
   useEffect(() => {
     const fetchBookmarkStatus = async () => {
       if (currentUser) {
@@ -183,7 +183,10 @@ const Quickie = ({ quickie }) => {
   };
 
   const handleLikeQuickie = async () => {
-    if (!currentUser) return; // Ensure user is authenticated
+    if (!currentUser){
+      toast.error("You must be logged in to like posts.");
+      return;
+    }
   
     try {
       const quickieRef = doc(db, "quickies", id);
@@ -221,7 +224,10 @@ const Quickie = ({ quickie }) => {
   
 
   const handleBookmarkQuickie = async () => {
-    if (!currentUser) return; // Ensure user is authenticated
+    if (!currentUser) {
+      toast.error("You must be logged in to bookmark posts.");
+      return;
+    }
 
     try {
       const profileRef = doc(db, "profiles", currentUser.uid);
@@ -323,7 +329,7 @@ const Quickie = ({ quickie }) => {
       <Link to={`/${handle}`}>
         <Avatar className="avatar" src={userAvatar} alt="avatar" />
       </Link>
-
+  
       <div className="quickie-info">
         <div className="quickie-info-user">
           <Link to={`/${handle}`}>
@@ -332,11 +338,11 @@ const Quickie = ({ quickie }) => {
             <span className="secondary">{moment(createdAt?.toDate()).fromNow()}</span>
           </Link>
         </div>
-
+  
         <Link to={`/${handle}/status/${id}`}>
           <p>{processedText}</p>
         </Link>
-
+  
         <div className="tags">
           {tags.length ? tags.map((tag) => (
             <span 
@@ -348,55 +354,61 @@ const Quickie = ({ quickie }) => {
             </span>
           )) : null}
         </div>
-
+  
         <Link to={`/${handle}/status/${id}`}>
           {renderMedia()} {/* Render video or image */}
         </Link>
-
+  
         <div className="quickie-stats">
-          <div>
-            <span className="comment">
-              <Link to={`/${handle}/status/${id}`}>
-                <CommentIcon />
-                {quickieData.commentsCount ? quickieData.commentsCount : null}
-              </Link>
-            </span>
-          </div>
-
-          <div>
-            <LikeQuickie
-              id={id}
-              isLiked={quickieData.likes.includes(currentUser.uid)} // Check if current user liked
-              likesCount={quickieData.likesCount}
-              handleLikeQuickie={handleLikeQuickie}
-            />
-          </div>
-
-          <div onClick={handleBookmarkQuickie} style={{ cursor: 'pointer' }}>
-            {isBookmarked ? <BmFillIcon /> : <BmIcon />}
-          </div>
-
-          <div onClick={handleShareQuickie} style={{ cursor: "pointer" }}>
-            <ShareIcon />
-          </div>
-
-          <div onClick={handleReportClick} style={{ cursor: 'pointer' }}> {/* Added Report button */}
-            <DangerIcon />
-          </div>
-
-          <div>
-            {currentUser && currentUser.uid === userId && (
-              <DeleteQuickie id={id} />
-            )}
-          </div>
+          {currentUser ? (
+            <>
+              <div>
+                <span className="comment">
+                  <Link to={`/${handle}/status/${id}`}>
+                    <CommentIcon />
+                    {quickieData.commentsCount ? quickieData.commentsCount : null}
+                  </Link>
+                </span>
+              </div>
+  
+              <div>
+                <LikeQuickie
+                  id={id}
+                  isLiked={quickieData.likes.includes(currentUser.uid)} // Check if current user liked
+                  likesCount={quickieData.likesCount}
+                  handleLikeQuickie={handleLikeQuickie}
+                />
+              </div>
+  
+              <div onClick={handleBookmarkQuickie} style={{ cursor: 'pointer' }}>
+                {isBookmarked ? <BmFillIcon /> : <BmIcon />}
+              </div>
+  
+              <div onClick={handleShareQuickie} style={{ cursor: "pointer" }}>
+                <ShareIcon />
+              </div>
+  
+              <div onClick={handleReportClick} style={{ cursor: 'pointer' }}>
+                <DangerIcon />
+              </div>
+  
+              <div>
+                {currentUser.uid === userId && <DeleteQuickie id={id} />}
+              </div>
+            </>
+          ) : (
+            <p style={{ color: "blue", cursor: "pointer" }}>
+              <a href="/">Log in to comment</a>
+            </p>
+          )}
         </div>
-
-        {isModalOpen && ( // Added Modal functionality
+  
+        {isModalOpen && ( // Modal functionality
           <Modal onClose={handleCloseModal} onSubmit={handleSubmitReport} />
         )}
       </div>
     </Wrapper>
-  );
+  );  
 };
 
 export default Quickie;
