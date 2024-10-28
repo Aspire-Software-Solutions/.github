@@ -48,6 +48,27 @@ export const ChatIcon = () => (
   </Svg>
 );
 
+export const PlusIcon = ({ className, style, onClick }) => (
+  <Svg
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="#000000"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    width="24px"
+    height="24px"
+    className={className}
+    style={style}
+    onClick={onClick}
+  >
+    <g>
+      <path d="M4 12H20M12 4V20" />
+    </g>
+  </Svg>
+);
+
+
 export const CloseIcon = () => (
   <Svg
     fill="#000000"

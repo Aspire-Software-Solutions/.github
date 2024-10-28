@@ -5,7 +5,7 @@ import Header from "../Header";
 import ProfileInfo from "./ProfileInfo";
 import Quickie from "../Quickie/Quickie";
 import Loader from "../Loader";
-import { getFirestore, collection, query, where, onSnapshot } from "firebase/firestore"; // Firestore imports
+import { getFirestore, collection, query, where, onSnapshot, orderBy } from "firebase/firestore"; // Firestore imports
 
 const Wrapper = styled.div`
   padding-bottom: 5rem;
@@ -51,8 +51,13 @@ const Profile = () => {
           const profileDoc = profileSnapshot.docs[0];
           setProfileData(profileDoc.data());
 
-          // Fetch the user's quickies in real-time
-          const quickiesQuery = query(collection(db, "quickies"), where("userId", "==", profileDoc.data().userId));
+          // Fetch the user's quickies in real-time, ordered by createdAt in descending order
+          const quickiesQuery = query(
+            collection(db, "quickies"),
+            where("userId", "==", profileDoc.data().userId),
+            orderBy("createdAt", "desc") // Ensure the posts are ordered newest to oldest
+          );
+
           onSnapshot(quickiesQuery, (quickiesSnapshot) => {
             const quickiesList = quickiesSnapshot.docs.map((doc) => ({
               id: doc.id,
@@ -75,14 +80,20 @@ const Profile = () => {
 
   if (loading) return <Loader />;
 
-  // Check if profileData exists before rendering firstname and lastname
+  // Extract firstname, lastname, and fullname from profileData
+  const { firstname, lastname, fullname } = profileData || {};
+
+  // Handle display name logic (same as in ProfileInfo.js)
+  const displayName = firstname && lastname ? `${firstname} ${lastname}` : fullname || "No name provided";
+
   return (
     <Wrapper>
       <Header>
         <div className="profile-top">
           {profileData ? (
             <>
-              <span>{`${profileData.firstname} ${profileData.lastname}`}</span>
+              {/* Display name logic added here */}
+              <span className="fullname">{displayName}</span>
               <span className="quickieCount">
                 {quickies.length ? `${quickies.length} Attacks` : "No Attacks"}
               </span>
