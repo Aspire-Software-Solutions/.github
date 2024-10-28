@@ -5,6 +5,18 @@ import { TrashIcon } from "../Icons";
 import { getFirestore, doc, updateDoc, arrayRemove, increment } from "firebase/firestore"; // Firebase Firestore imports
 
 const DeleteComment = ({ commentData }) => {
+
+  /**
+   * SINGLETON PATTERN:
+   * ------------------
+   * 
+   * This pattern ensures a single shared instance of Firestore 
+   * is used across the application, avoiding redundant 
+   * initializations. It helps manage memory usage and allows
+   * the same Firestore instance to be accessed in multiple files.
+   * 
+   * Using Singleton, we get a single `db` instance for all CRUD operations.
+   */
   const { quickieId } = useParams(); // Assuming `quickieId` is in the URL
   const db = getFirestore()
 

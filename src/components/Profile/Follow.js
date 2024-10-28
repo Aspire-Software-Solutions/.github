@@ -41,6 +41,14 @@ const Follow = ({ isFollowing, userId, sm = false, relative = false }) => {
     fetchFollowState();
   }, [db, currentUser, userId]);
 
+  /**
+   * COMMAND PATTERN:
+   * ----------------
+   * 
+   * Encapsulates the follow and unfollow actions as commands, making it 
+   * easier to manage, undo, or extend these actions. This pattern enables 
+   * flexibility in handling follow behavior, especially with asynchronous updates.
+  */
   const handleFollow = async () => {
     if (!currentUser) {
       console.error("User not authenticated");

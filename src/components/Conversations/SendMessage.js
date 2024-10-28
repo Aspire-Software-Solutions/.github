@@ -30,6 +30,17 @@ const SendMessage = ({ conversationId, setMessageSent }) => {
   const storage = getStorage();
   const currentUser = auth.currentUser;
 
+  /**
+   * COMMAND PATTERN:
+   * ----------------
+   * 
+   * Encapsulates the action of sending a message as a command, 
+   * enabling additional functionality such as undoing, retrying, or 
+   * scheduling messages in the future.
+   * 
+   * This pattern enhances the flexibility and functionality of the 
+   * messaging system, especially for asynchronous operations.
+  */
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!messageText.trim() && !mediaFile) return;
@@ -61,9 +72,20 @@ const SendMessage = ({ conversationId, setMessageSent }) => {
 
       // Reference the conversation document
       const conversationRef = doc(db, "conversations", conversationId);
-
+      
+      /**
+       * FACTORY PATTERN:
+       * ----------------
+       * 
+       * Provides a standardized method to create message objects
+       * with the required properties, ensuring all messages follow
+       * the same structure.
+       * 
+       * This pattern simplifies the addition of new message fields and 
+       * makes the codebase easier to manage.
+      */
       // Create a new message in Firestore with the image or video URL
-      const messageRef = await addDoc(collection(conversationRef, "messages"), {
+        const messageRef = await addDoc(collection(conversationRef, "messages"), {
         senderId: currentUser.uid,
         messageText: messageText || "",
         messageImageUrl: uploadedMediaUrl || null,

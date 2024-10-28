@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { toast } from "react-toastify";
 import useInput from "../../hooks/useInput";
 import { displayError } from "../../utils";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore"; // Firestore
 import SearchResult from "./SearchResult";
+import { useLocation } from 'react-router-dom';
 
 const Wrapper = styled.div`
   margin: 1rem 0;
@@ -30,14 +31,33 @@ const Wrapper = styled.div`
 `;
 
 const SearchInput = () => {
+  const location = useLocation();
   const term = useInput("");
   const [searchQuickieData, setSearchQuickieData] = useState([]);
   const [searchUserData, setSearchUserData] = useState([]);
   const [searchQuickieLoading, setSearchQuickieLoading] = useState(false);
   const [searchUserLoading, setSearchUserLoading] = useState(false);
-
   const db = getFirestore(); // Initialize Firestore
 
+  // Set term's initial value if a tag is available in sessionStorage
+  useEffect(() => {
+    const tag = sessionStorage.getItem("searchTag");
+    if (tag) {
+      term.setValue(tag); // Set search input to the stored tag
+      sessionStorage.removeItem("searchTag"); // Clear stored tag after use
+    }
+  }, [term]);
+
+  /**
+   * DESIGN PATTERN:
+   * ---------------
+   * FACADE PATTERN
+   * 
+   * Provides a simplfiied interface to 
+   * handle both, tag and user searches.
+   * In other words, it encapsulates the search logic by 
+   * ensuring the UI omly has to call handleSearch.
+   */
   const handleSearch = async (e) => {
     e.preventDefault();
 
@@ -109,7 +129,7 @@ const SearchInput = () => {
       <Wrapper>
         <form onSubmit={handleSearch}>
           <input
-            placeholder="Search by tags, quickies, people"
+            placeholder="Search by tags or people"
             type="text"
             value={term.value}
             onChange={term.onChange}

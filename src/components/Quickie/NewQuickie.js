@@ -92,6 +92,14 @@ const NewQuickie = () => {
     fetchUserAvatar();
   }, [auth, db]);
 
+  /**
+   * FACTORY PATTERN:
+   * ----------------
+   * 
+   * Standardizes the creation of a new quickie post, ensuring all
+   * quickies follow the same structure. This pattern simplifies the
+   * codebase, making it easier to manage and extend.
+  */
   const handleNewQuickie = async (e) => {
     e.preventDefault();
 

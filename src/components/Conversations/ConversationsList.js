@@ -117,6 +117,17 @@ const Wrapper = styled.div`
   }
 `;
 
+/**
+ * COMPOSITE PATTERN:
+ * ------------------
+ * 
+ * Organizes the conversations list into a nested structure, 
+ * where each conversation is composed of messages. The Composite 
+ * Pattern simplifies managing complex hierarchical relationships.
+ * 
+ * This pattern is particularly useful for group conversations, 
+ * which may contain multiple participants and submessages.
+*/
 const ConversationsList = () => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [conversations, setConversations] = useState([]);

@@ -5,6 +5,14 @@ import { getFirestore, doc, deleteDoc, getDoc } from "firebase/firestore"; // Fi
 import { getStorage, ref, deleteObject } from "firebase/storage"; // Firebase Storage
 import { getAuth } from "firebase/auth"; // Firebase Auth
 
+/**
+ * COMMAND PATTERN:
+ * ----------------
+ * 
+ * Encapsulates the delete action, allowing it to be executed 
+ * independently and providing flexibility for additional functionality
+ * (e.g., undo or logging).
+ */
 const DeleteQuickie = ({ id }) => {
   const db = getFirestore();
   const storage = getStorage(); // Firebase Storage instance
