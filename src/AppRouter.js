@@ -16,7 +16,8 @@ import Notifications from "./pages/Notifications";
 import Explore from "./pages/Explore";
 import EditProfile from "./components/Profile/EditProfile";
 import FollowersFollowing from "./components/Profile/FollowersFollowing";
-import ConversationsList from "./components/Conversations/ConversationDetail";
+import ConversationsList from "./components/Conversations/ConversationsList";
+import ConversationDetail from "./components/Conversations/ConversationDetail";
 import ModerationDashboard from "./pages/ContentModeration"; // Content Moderation Page
 import Auth from "./components/Auth/Auth"; // Import Auth directly for unauthenticated users
 
