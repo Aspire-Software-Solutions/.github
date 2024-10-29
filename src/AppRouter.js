@@ -62,42 +62,48 @@ const AppRouter = () => {
 
   return (
     <Router>
-      <Switch>
-        {/* Route accessible to everyone */}
-        <Route exact path="/:handle/status/:quickieId" component={MasterQuickie} />
+      <div>
+        {user && <Nav />} {/* Show Nav only for authenticated users */}
+        <Switch>
+          {/* Route accessible to everyone */}
+          <Route exact path="/:handle/status/:quickieId" render={() => (
+            <Layout>
+              <MasterQuickie />
+            </Layout>
+          )} />
 
-        {/* Routes accessible only to authenticated users */}
-        {user ? (
-          <>
-            {isAdmin && (
-              <Route
-                path="/ContentModeration"
-                render={() => <ModerationDashboard user={user} isAdmin={isAdmin} />}
-              />
-            )}
-            <Route>
-              <Nav />
-              <Layout>
-                <Switch>
-                  <Route exact path="/" component={Home} />
-                  <Route exact path="/explore" component={Explore} />
-                  <Route exact path="/notifications" component={Notifications} />
-                  <Route exact path="/bookmarks" component={Bookmarks} />
-                  <Route exact path="/conversations" component={ConversationsList} />
-                  <Route exact path="/conversations/:conversationId" component={ConversationDetail}/>
-                  <Route exact path="/settings/profile" component={EditProfile} />
-                  <Route exact path="/:handle" component={Profile} />
-                  <Route exact path="/:handle/:type" component={FollowersFollowing} />
-                  {/* Catch-All Redirect */}
-                  <Route render={() => <Home />} />
-                </Switch>
-              </Layout>
-            </Route>
-          </>
-        ) : (
-          <Auth /> // Render Auth for unauthenticated users
-        )}
-      </Switch>
+          {/* Routes accessible only to authenticated users */}
+          {user ? (
+            <>
+              {isAdmin && (
+                <Route
+                  path="/ContentModeration"
+                  render={() => <ModerationDashboard user={user} isAdmin={isAdmin} />}
+                />
+              )}
+              <Route>
+                <Layout>
+                  <Switch>
+                    <Route exact path="/" component={Home} />
+                    <Route exact path="/explore" component={Explore} />
+                    <Route exact path="/notifications" component={Notifications} />
+                    <Route exact path="/bookmarks" component={Bookmarks} />
+                    <Route exact path="/conversations" component={ConversationsList} />
+                    <Route exact path="/conversations/:conversationId" component={ConversationDetail}/>
+                    <Route exact path="/settings/profile" component={EditProfile} />
+                    <Route exact path="/:handle" component={Profile} />
+                    <Route exact path="/:handle/:type" component={FollowersFollowing} />
+                    {/* Catch-All Redirect */}
+                    <Route render={() => <Home />} />
+                  </Switch>
+                </Layout>
+              </Route>
+            </>
+          ) : (
+            <Auth /> // Render Auth for unauthenticated users
+          )}
+        </Switch>
+      </div>
     </Router>
   );
 };
