@@ -20,6 +20,7 @@ import ConversationsList from "./components/Conversations/ConversationsList";
 import ConversationDetail from "./components/Conversations/ConversationDetail";
 import ModerationDashboard from "./pages/ContentModeration"; // Content Moderation Page
 import Auth from "./components/Auth/Auth"; // Import Auth directly for unauthenticated users
+import SharedAttacks from "./pages/SharedAttacks";
 
 const AppRouter = () => {
   const auth = getAuth();
@@ -65,12 +66,9 @@ const AppRouter = () => {
       <div>
         {user && <Nav />} {/* Show Nav only for authenticated users */}
         <Switch>
-          {/* Route accessible to everyone */}
-          <Route exact path="/:handle/status/:quickieId" render={() => (
-            <Layout>
-              <MasterQuickie />
-            </Layout>
-          )} />
+          {/* Publicly accessible shared page */}
+          <Route exact path="/shared/:quickieId" component={SharedAttacks} />
+          <Route exact path="/shared" component={SharedAttacks} />
 
           {/* Routes accessible only to authenticated users */}
           {user ? (

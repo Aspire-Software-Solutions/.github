@@ -103,7 +103,7 @@ const ReportButton = styled.button` // Added ReportButton styles
   margin-left: 1rem;
 `;
 
-const Quickie = ({ quickie }) => {
+const Quickie = ({ quickie, readOnly = false }) => {
   const {
     id,
     text,
@@ -359,49 +359,53 @@ const Quickie = ({ quickie }) => {
           {renderMedia()} {/* Render video or image */}
         </Link>
   
-        <div className="quickie-stats">
-          {currentUser ? (
-            <>
-              <div>
-                <span className="comment">
-                  <Link to={`/${handle}/status/${id}`}>
-                    <CommentIcon />
-                    {quickieData.commentsCount ? quickieData.commentsCount : null}
-                  </Link>
-                </span>
-              </div>
-  
-              <div>
-                <LikeQuickie
-                  id={id}
-                  isLiked={quickieData.likes.includes(currentUser.uid)} // Check if current user liked
-                  likesCount={quickieData.likesCount}
-                  handleLikeQuickie={handleLikeQuickie}
-                />
-              </div>
-  
-              <div onClick={handleBookmarkQuickie} style={{ cursor: 'pointer' }}>
-                {isBookmarked ? <BmFillIcon /> : <BmIcon />}
-              </div>
-  
-              <div onClick={handleShareQuickie} style={{ cursor: "pointer" }}>
-                <ShareIcon />
-              </div>
-  
-              <div onClick={handleReportClick} style={{ cursor: 'pointer' }}>
-                <DangerIcon />
-              </div>
-  
-              <div>
-                {currentUser.uid === userId && <DeleteQuickie id={id} />}
-              </div>
-            </>
-          ) : (
-            <p style={{ color: "blue", cursor: "pointer" }}>
-              <a href="/">Log in to comment</a>
-            </p>
-          )}
-        </div>
+        {/* Display quickie content */}
+      <div className="quickie-info">
+        
+        {/* Show likes, comments, share, etc., only if readOnly is false */}
+        {!readOnly ? (
+          <div className="quickie-stats">
+            {currentUser ? (
+              <>
+                <div>
+                  <span className="comment">
+                    <Link to={`/${handle}/status/${id}`}>
+                      <CommentIcon />
+                      {quickieData.commentsCount ? quickieData.commentsCount : null}
+                    </Link>
+                  </span>
+                </div>
+                <div>
+                  <LikeQuickie
+                    id={id}
+                    isLiked={quickieData.likes.includes(currentUser.uid)}
+                    likesCount={quickieData.likesCount}
+                    handleLikeQuickie={handleLikeQuickie}
+                  />
+                </div>
+                <div onClick={handleBookmarkQuickie} style={{ cursor: 'pointer' }}>
+                  {isBookmarked ? <BmFillIcon /> : <BmIcon />}
+                </div>
+                <div onClick={handleShareQuickie} style={{ cursor: "pointer" }}>
+                  <ShareIcon />
+                </div>
+                <div onClick={handleReportClick} style={{ cursor: 'pointer' }}>
+                  <DangerIcon />
+                </div>
+                <div>
+                  {currentUser.uid === userId && <DeleteQuickie id={id} />}
+                </div>
+              </>
+            ) : (
+              <p style={{ color: "blue", cursor: "pointer" }}>
+                <a href="/">Log in to comment</a>
+              </p>
+            )}
+          </div>
+        ) : (
+          <p>Viewing only. Interactions are disabled.</p>
+        )}
+      </div>
   
         {isModalOpen && ( // Modal functionality
           <Modal onClose={handleCloseModal} onSubmit={handleSubmitReport} />
