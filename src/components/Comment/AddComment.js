@@ -147,7 +147,7 @@ const AddComment = ({ id }) => {
   const user = auth.currentUser;
 
   if (!user) {
-    return <p>You need to be logged in to add a comment.</p>;
+    return <p></p>;
   }
 
   return (
