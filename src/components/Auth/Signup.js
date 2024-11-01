@@ -13,6 +13,7 @@ import {
   PhoneAuthProvider,
 } from "firebase/auth";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import '../../styles/Login.css' // Specific Styles for Login.CSS
 
 /**
  * TEMPLATE METHOD PATTERN:
@@ -196,6 +197,7 @@ const SignUp = ({ changeToLogin }) => {
           <Form.Label style={labelStyle}>First Name</Form.Label>
           <Form.Control
             type="text"
+            className="customInput"
             placeholder="Enter first name"
             value={firstname}
             onChange={(e) => setFirstname(e.target.value)}
@@ -207,6 +209,7 @@ const SignUp = ({ changeToLogin }) => {
           <Form.Label style={labelStyle}>Last Name</Form.Label>
           <Form.Control
             type="text"
+            className="customInput"
             placeholder="Enter last name"
             value={lastname}
             onChange={(e) => setLastname(e.target.value)}
@@ -218,6 +221,7 @@ const SignUp = ({ changeToLogin }) => {
           <Form.Label style={labelStyle}>Handle</Form.Label>
           <Form.Control
             type="text"
+            className="customInput"
             placeholder="Choose handle"
             value={handle}
             onChange={(e) => setHandle(e.target.value)}
@@ -229,6 +233,7 @@ const SignUp = ({ changeToLogin }) => {
           <Form.Label style={labelStyle}>Email</Form.Label>
           <Form.Control
             type="email"
+            className="customInput"
             placeholder="Enter email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -239,12 +244,15 @@ const SignUp = ({ changeToLogin }) => {
         <Form.Group className="mb-2 d-flex align-items-center">
           <Form.Label style={labelStyle}>Phone</Form.Label>
           <PhoneInput
-            country={'us'}
+            country={'us'} // Set default country
+            disableCountryGuess // Disables automatic changes based on input
             value={phoneNumber}
             onChange={(phone) => setPhoneNumber(phone)}
-            containerStyle={{width: '60%'}}
-            inputStyle={{...inputStyle, width: '100%'}}
-            dropdownStyle={{width: '260px'}}
+            disableCountryCode // Prevents editing of the country code
+            containerClass="phoneInputContainer" // Container styling
+            inputClass="form-control" // Apply styles to the input field itself
+            buttonClass="flag-dropdown" // Applies to the dropdown button
+            dropdownClass="countryList" // Applies to the dropdown list itself
             required
           />
         </Form.Group>
@@ -253,6 +261,7 @@ const SignUp = ({ changeToLogin }) => {
           <div style={{width: '60%'}}>
             <Form.Control
               type="password"
+              className="customInput"
               placeholder="Enter password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -283,6 +292,7 @@ const SignUp = ({ changeToLogin }) => {
           <Form.Label style={labelStyle}>Confirm</Form.Label>
           <Form.Control
             type="password"
+            className="customInput"
             placeholder="Confirm password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -298,13 +308,12 @@ const SignUp = ({ changeToLogin }) => {
         {!isCodeSent ? (
           <div className="d-flex justify-content-center mt-3">
             <Button
-              variant="primary"
-              className="w-60"
+              className="w-100 loginButton"
               onClick={sendVerificationCode}
               style={{height: '32px', fontSize: '0.9rem', padding: '0.25rem 0.5rem'}}
               disabled={!passwordsMatch}  // Disable the button if passwords don't match
             >
-              Send Verification Code
+              Create Account!
             </Button>
           </div>
         ) : (
