@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"; // Import React
+import React, { useState, useEffect, useRef } from "react"; // Import React
 import { 
   getAuth, 
   getMultiFactorResolver, 
@@ -42,6 +42,8 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
   const [selectedIndex, setSelectedIndex] = useState(0); 
   const [isTwoFactorRequired, setIsTwoFactorRequired] = useState(false);
 
+  const codeInputRef = useRef(null); // Reference for the verification code input field
+
   useEffect(() => {
     return () => {
       if (window.recaptchaVerifier) {
@@ -49,6 +51,13 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (isTwoFactorRequired && resolver) {
+      sendVerificationCode(); // Automatically trigger the 2FA code when 2FA is required
+      codeInputRef.current?.focus(); // Automatically focus the code input field
+    }
+  }, [isTwoFactorRequired, resolver]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -107,6 +116,7 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
       const verificationId = await phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, window.recaptchaVerifier);
       setVerificationId(verificationId);
       toast.success("Verification code sent to your phone.");
+      codeInputRef.current?.focus(); // Focus the code input field after sending the code
     } catch (error) {
       toast.error("Failed to send verification code. Please try again.");
       if (window.recaptchaVerifier) {
@@ -174,6 +184,7 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
                       <Form.Label>Verification Code</Form.Label>
                       <Form.Control 
                         type="text"
+                        ref={codeInputRef} // Attach the ref here
                         className="customInput"
                         placeholder="Enter the verification code"
                         value={code}
