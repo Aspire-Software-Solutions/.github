@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Switch,
@@ -6,8 +6,6 @@ import {
 } from "react-router-dom";
 import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase Auth import
 import { getFirestore, doc, getDoc } from "firebase/firestore"; // Firestore imports
-import { ThemeContext } from "./context/ThemeContext";
-import { darkTheme } from "./styles/themes";
 import Layout from "./styles/Layout";
 import Nav from "./components/layout/Nav";
 import Home from "./pages/Home";
@@ -24,7 +22,6 @@ import ModerationDashboard from "./pages/ContentModeration"; // Content Moderati
 import Auth from "./components/Auth/Auth"; // Import Auth directly for unauthenticated users
 
 const AppRouter = () => {
-  const { setTheme } = useContext(ThemeContext);
   const auth = getAuth();
   const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -58,16 +55,6 @@ const AppRouter = () => {
     };
     fetchProfile();
   }, [user, db]);
-
-  useEffect(() => {
-    if (!user) {
-      setTheme(darkTheme); // Force dark theme for unauthenticated routes
-    }
-  }, [user, setTheme]);
-
-  if (!isProfileLoaded) {
-    return <div>Loading...</div>;
-  }
 
   if (!isProfileLoaded) {
     return <div>Loading...</div>;

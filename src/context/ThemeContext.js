@@ -4,7 +4,12 @@ import { darkTheme, lightTheme } from "../styles/themes";
 export const ThemeContext = createContext(null);
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(darkTheme); // Start with darkTheme for auth pages
+  const getInitialTheme = () => {
+    const localSt = localStorage.getItem("theme");
+    return localSt ? (localSt === "dark" ? darkTheme : lightTheme) : darkTheme;
+  };
+
+  const [theme, setTheme] = useState(getInitialTheme);
 
   const toggleTheme = () => {
     setTheme((prevTheme) => {
