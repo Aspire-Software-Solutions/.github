@@ -42,6 +42,9 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
   const [selectedIndex, setSelectedIndex] = useState(0); 
   const [isTwoFactorRequired, setIsTwoFactorRequired] = useState(false);
 
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // State for disabling the button
+  const [countdown, setCountdown] = useState(10); // Countdown timer state
+
   const codeInputRef = useRef(null); // Reference for the verification code input field
 
   useEffect(() => {
@@ -116,6 +119,21 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
       const verificationId = await phoneAuthProvider.verifyPhoneNumber(phoneInfoOptions, window.recaptchaVerifier);
       setVerificationId(verificationId);
       toast.success("Verification code sent to your phone.");
+
+      // Start countdown and disable button
+      setIsButtonDisabled(true);
+      setCountdown(10);
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === 1) {
+            clearInterval(countdownInterval);
+            setIsButtonDisabled(false);
+            return 10;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
       codeInputRef.current?.focus(); // Focus the code input field after sending the code
     } catch (error) {
       toast.error("Failed to send verification code. Please try again.");
@@ -150,6 +168,17 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
     changeToForgotPass();
   };
 
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (isTwoFactorRequired) {
+        verifyCode(); // Trigger the Verify button action for 2FA
+      } else {
+        handleLogin(e); // Trigger the Sign In button action
+      }
+    }
+  };
+
   return (
     <Container fluid className="d-flex align-items-center justify-content-center" id="overallContainer">
       <Row className="d-flex align-items-center justify-content-center">
@@ -160,7 +189,7 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
         <Col xs={12} md={6}>
           <HexagonBox backgroundColor="rgb(114, 0, 0)" textColor="white" padding="6rem 5rem">
             <div className="mt-5 mb-5 ml-3 mr-3">
-              <Form onSubmit={handleLogin} className="signin-form">
+              <Form onKeyDown={handleKeyDown} onSubmit={handleLogin} className="signin-form">
                 <h2 className="text-center mb-3" style={{ fontSize: "2rem", fontWeight: "bold" }}>Log In</h2>
                 
                 {!isTwoFactorRequired && (
@@ -179,19 +208,25 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
 
                 {isTwoFactorRequired && (
                   <>
-                    <Button onClick={sendVerificationCode} className="mt-2 w-100 loginButton">Send Verification Code</Button>
+                    <Button 
+                      onClick={sendVerificationCode} 
+                      className="mt-2 w-100 loginButton" 
+                      disabled={isButtonDisabled}
+                    >
+                      {isButtonDisabled ? `Resend in ${countdown}s` : "Send Verification Code"}
+                    </Button>
                     <Form.Group className="mt-2">
                       <Form.Label>Verification Code</Form.Label>
                       <Form.Control 
                         type="text"
                         ref={codeInputRef} // Attach the ref here
                         className="customInput"
-                        placeholder="Enter the verification code"
+                        placeholder="Enter the code"
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                       />
                     </Form.Group>
-                    <Button onClick={verifyCode} className="mt-2 w-100 loginButton">Verify</Button>
+                    <Button onClick={verifyCode} className="mt-2 w-100 loginButton">Verify Code</Button>
                   </>
                 )}
       

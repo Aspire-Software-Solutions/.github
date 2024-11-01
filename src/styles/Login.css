@@ -161,6 +161,13 @@
     color: rgb(24, 24, 24);
 }
 
+.loginButton:disabled {
+  background-color: #b3b3b3; /* Light grey color for disabled state */
+  color: #ffffff; /* White or light grey text color */
+  cursor: not-allowed; /* Optional: Show a "not-allowed" cursor */
+  box-shadow: none; /* Remove shadow for a flat look */
+}
+
 /* Container for the phone input component to maintain 100% width */
 .phoneInputContainer {
     width: 100%;

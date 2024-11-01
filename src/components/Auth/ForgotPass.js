@@ -3,6 +3,8 @@ import { getAuth, sendPasswordResetEmail } from "firebase/auth";
 import { toast } from "react-toastify";
 import { Form, Button, Container, Row, Col } from "react-bootstrap";
 import 'bootstrap/dist/css/bootstrap.min.css';
+import '../../styles/Login.css' // Specific Styles for Login.CSS
+import HexagonBox from "../ui/HexagonBox";
 
 /**
  * OBSERVER PATTERN:
@@ -60,13 +62,14 @@ const ForgotPass = ({ changeToLogin }) => {
               <Form.Label>Email or Username</Form.Label>
               <Form.Control
                 type="text"
+                className="customInput"
                 placeholder="Enter your email or username"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
               />
             </Form.Group>
-            <Button variant="primary" type="submit" className="w-100">
+            <Button variant="primary" type="submit" className="w-100 loginButton">
               Reset Password
             </Button>
             <div className="text-center mt-3">
