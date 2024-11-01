@@ -152,45 +152,47 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
         {/* Form Column */}
         <Col xs={12} md={6}>
           <HexagonBox backgroundColor="rgb(114, 0, 0)" textColor="white" padding="6rem 5rem">
-            <Form onSubmit={handleLogin} className="signin-form">
-              <h2 className="text-center mb-3" style={{ fontSize: "2rem", fontWeight: "bold" }}>Log In</h2>
-              
-              <Form.Group className="mb-2">
-                <Form.Label>Email</Form.Label>
-                <Form.Control className="customInput" type="email" placeholder="Enter email" value={email.value} onChange={email.onChange} />
-              </Form.Group>
-              <Form.Group className="mb-2">
-                <Form.Label>Password</Form.Label>
-                <Form.Control className="customInput" type="password" placeholder="Enter password" value={password.value} onChange={password.onChange} />
-              </Form.Group>
-    
-              <Button type="submit" className="w-100 btn loginButton mt-2">Sign In</Button>
-    
-              <div id="recaptcha-container"></div>
-    
-              {resolver && (
-                <>
-                  <Button onClick={sendVerificationCode} className="mt-2 w-100">Send Verification Code</Button>
-                  <Form.Group className="mt-2">
-                    <Form.Label>Verification Code</Form.Label>
-                    <Form.Control 
-                      type="text"
-                      placeholder="Enter the verification code"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                    />
-                  </Form.Group>
-                  <Button onClick={verifyCode} className="mt-2 w-100">Verify</Button>
-                </>
-              )}
-    
-              <div className="text-center mt-2">
-                <span style={{ cursor: "pointer", fontSize: "0.9rem" }} onClick={handleForgotPassword}>Forgot Password?</span>
-              </div>
-              <div className="text-center mt-1">
-                <span style={{ cursor: "pointer", fontSize: "0.9rem" }} onClick={changeToSignup}>Create New Account?</span>
-              </div>
-            </Form>
+            <div className="mt-5 mb-5 ml-3 mr-3">
+              <Form onSubmit={handleLogin} className="signin-form">
+                <h2 className="text-center mb-3" style={{ fontSize: "2rem", fontWeight: "bold" }}>Log In</h2>
+                
+                <Form.Group className="mb-2">
+                  <Form.Label>Email</Form.Label>
+                  <Form.Control className="customInput" type="email" placeholder="Enter email" value={email.value} onChange={email.onChange} />
+                </Form.Group>
+                <Form.Group className="mb-2">
+                  <Form.Label>Password</Form.Label>
+                  <Form.Control className="customInput" type="password" placeholder="Enter password" value={password.value} onChange={password.onChange} />
+                </Form.Group>
+      
+                <Button type="submit" className="w-100 btn loginButton mt-2">Sign In</Button>
+      
+                <div id="recaptcha-container"></div>
+      
+                {resolver && (
+                  <>
+                    <Button onClick={sendVerificationCode} className="mt-2 w-100">Send Verification Code</Button>
+                    <Form.Group className="mt-2">
+                      <Form.Label>Verification Code</Form.Label>
+                      <Form.Control 
+                        type="text"
+                        placeholder="Enter the verification code"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                      />
+                    </Form.Group>
+                    <Button onClick={verifyCode} className="mt-2 w-100">Verify</Button>
+                  </>
+                )}
+      
+                <div className="text-center mt-2">
+                  <span style={{ cursor: "pointer", fontSize: "0.9rem" }} onClick={handleForgotPassword}>Forgot Password?</span>
+                </div>
+                <div className="text-center mt-1">
+                  <span style={{ cursor: "pointer", fontSize: "0.9rem" }} onClick={changeToSignup}>Create New Account?</span>
+                </div>
+              </Form>
+            </div>
           </HexagonBox>
         </Col>
       </Row>
