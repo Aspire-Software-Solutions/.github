@@ -36,15 +36,16 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
   const password = useInput("");
   const auth = getAuth();
   
-  const [code, setCode] = useState(""); // Verification code for 2FA
-  const [verificationId, setVerificationId] = useState(null); // For storing verification ID
-  const [resolver, setResolver] = useState(null); // Multi-factor resolver
-  const [selectedIndex, setSelectedIndex] = useState(0); // Index of selected 2FA method
+  const [code, setCode] = useState(""); 
+  const [verificationId, setVerificationId] = useState(null); 
+  const [resolver, setResolver] = useState(null); 
+  const [selectedIndex, setSelectedIndex] = useState(0); 
+  const [isTwoFactorRequired, setIsTwoFactorRequired] = useState(false);
 
   useEffect(() => {
     return () => {
       if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear(); // Cleanup reCAPTCHA
+        window.recaptchaVerifier.clear();
       }
     };
   }, []);
@@ -66,6 +67,7 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
       if (error.code === "auth/multi-factor-auth-required") {
         const resolver = getMultiFactorResolver(auth, error);
         setResolver(resolver);
+        setIsTwoFactorRequired(true);
         toast.info("2FA required. Sending verification code.");
       } else {
         return displayError(error);
@@ -73,7 +75,6 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
     }
   };
 
-  // Send the 2FA verification code (SMS)
   const sendVerificationCode = async () => {
     if (!resolver) {
       toast.error("Multi-factor resolver is missing.");
@@ -96,7 +97,6 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
       );
     }
     
-  
     try {
       const phoneInfoOptions = {
         multiFactorHint: resolver.hints[selectedIndex],
@@ -113,9 +113,8 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
         window.recaptchaVerifier.clear();
       }
     }
-  };  
+  };
 
-  // Verify the SMS code entered by the user
   const verifyCode = async () => {
     if (!verificationId || !resolver) {
       toast.error("Verification ID or resolver missing.");
@@ -144,47 +143,49 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
   return (
     <Container fluid className="d-flex align-items-center justify-content-center" id="overallContainer">
       <Row className="d-flex align-items-center justify-content-center">
-        {/* Logo Column */}
         <Col xs={12} md={6} className="d-none d-sm-block d-flex justify-content-center align-items-center">
           <img src={companyLogo} className="col-md-8 col-lg-6" alt="Company Logo" />
         </Col>
   
-        {/* Form Column */}
         <Col xs={12} md={6}>
           <HexagonBox backgroundColor="rgb(114, 0, 0)" textColor="white" padding="6rem 5rem">
             <div className="mt-5 mb-5 ml-3 mr-3">
               <Form onSubmit={handleLogin} className="signin-form">
                 <h2 className="text-center mb-3" style={{ fontSize: "2rem", fontWeight: "bold" }}>Log In</h2>
                 
-                <Form.Group className="mb-2">
-                  <Form.Label>Email</Form.Label>
-                  <Form.Control className="customInput" type="email" placeholder="Enter email" value={email.value} onChange={email.onChange} />
-                </Form.Group>
-                <Form.Group className="mb-2">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control className="customInput" type="password" placeholder="Enter password" value={password.value} onChange={password.onChange} />
-                </Form.Group>
-      
-                <Button type="submit" className="w-100 btn loginButton mt-2">Sign In</Button>
-      
-                <div id="recaptcha-container"></div>
-      
-                {resolver && (
+                {!isTwoFactorRequired && (
                   <>
-                    <Button onClick={sendVerificationCode} className="mt-2 w-100">Send Verification Code</Button>
+                    <Form.Group className="mb-2">
+                      <Form.Label>Email</Form.Label>
+                      <Form.Control className="customInput" type="email" placeholder="Enter email" value={email.value} onChange={email.onChange} />
+                    </Form.Group>
+                    <Form.Group className="mb-2">
+                      <Form.Label>Password</Form.Label>
+                      <Form.Control className="customInput" type="password" placeholder="Enter password" value={password.value} onChange={password.onChange} />
+                    </Form.Group>
+                    <Button type="submit" className="w-100 btn loginButton mt-2">Sign In</Button>
+                  </>
+                )}
+
+                {isTwoFactorRequired && (
+                  <>
+                    <Button onClick={sendVerificationCode} className="mt-2 w-100 loginButton">Send Verification Code</Button>
                     <Form.Group className="mt-2">
                       <Form.Label>Verification Code</Form.Label>
                       <Form.Control 
                         type="text"
+                        className="customInput"
                         placeholder="Enter the verification code"
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                       />
                     </Form.Group>
-                    <Button onClick={verifyCode} className="mt-2 w-100">Verify</Button>
+                    <Button onClick={verifyCode} className="mt-2 w-100 loginButton">Verify</Button>
                   </>
                 )}
       
+                <div id="recaptcha-container"></div>
+                
                 <div className="text-center mt-2">
                   <span style={{ cursor: "pointer", fontSize: "0.9rem" }} onClick={handleForgotPassword}>Forgot Password?</span>
                 </div>
