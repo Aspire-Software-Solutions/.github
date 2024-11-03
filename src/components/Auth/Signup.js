@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
@@ -11,6 +11,10 @@ import {
   updateProfile,
   RecaptchaVerifier,
   PhoneAuthProvider,
+  PhoneMultiFactorGenerator,
+  signInWithCredential
+  
+
 } from "firebase/auth";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import '../../styles/Login.css'; // Specific Styles for Login.CSS
@@ -48,6 +52,8 @@ const SignUp = ({ changeToLogin }) => {
     color: 'white',
   };
 
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isStep1Valid, setIsStep1Valid] = useState(false);
   const [isStep2Valid, setIsStep2Valid] = useState(false);
@@ -73,6 +79,20 @@ const SignUp = ({ changeToLogin }) => {
   });
   const [passwordsMatch, setPasswordsMatch] = useState(true);
 
+  const [verificationId, setVerificationId] = useState(null); 
+  const [resolver, setResolver] = useState(null); 
+  const [selectedIndex, setSelectedIndex] = useState(0); 
+  const codeInputRef = useRef(null); // Reference for the verification code input field
+
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // State for disabling the button
+  const [countdown, setCountdown] = useState(10); // Countdown timer state
+
+  const [isVerified, setIsVerified] = useState(false); // Track if phone number is verified
+  const [areFieldsDisabled, setAreFieldsDisabled] = useState(false); // Track if fields should be disabled
+
+  // Disable fields and show Sign Up button if verified
+  const disableFieldProps = isVerified ? { disabled: true } : {};
+
   const auth = getAuth();
   const db = getFirestore();
 
@@ -91,6 +111,24 @@ const SignUp = ({ changeToLogin }) => {
   useEffect(() => {
     setIsStep3Valid(phoneNumber);
   }, [phoneNumber]);  
+
+  const initializeRecaptcha = () => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(
+        auth, // MAKE THIS THE FIRST ARGUMENT OF ELSE EVERYTHING WILL BREAK!!!!!
+        "recaptcha-container", 
+        {
+          size: "invisible", // Don't let the user see the reCaptcha logo
+          callback: (response) => {
+            console.log("reCAPTCHA solved.");
+          },
+          "expired-callback": () => {
+            console.log("reCAPTCHA expired.");
+          },
+        }
+      );
+    }
+  };
 
   const validateFirstname = () => {
     if (!firstname) {
@@ -144,6 +182,76 @@ const SignUp = ({ changeToLogin }) => {
     return true;
   };
 
+  const sendVerificationCode = async () => {
+    initializeRecaptcha();
+  
+    console.log('Sending verification code to:', phoneNumber); // Debug log
+    
+    try {
+      const phoneAuthProvider = new PhoneAuthProvider(auth);
+      const id = await phoneAuthProvider.verifyPhoneNumber(
+        phoneNumber, // This should be the full E.164 formatted number
+        window.recaptchaVerifier
+      );
+      console.log('Verification ID received:', id); // Debug log
+      setVerificationId(id);
+      toast.success("Verification code sent to your phone.");
+    
+      setIsButtonDisabled(true);
+      setCountdown(10);
+      const countdownInterval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev === 1) {
+            clearInterval(countdownInterval);
+            setIsButtonDisabled(false);
+            return 10;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    
+      codeInputRef.current?.focus();
+    } catch (error) {
+      console.error("Error sending verification code:", error);
+      toast.error("Failed to send verification code. Please try again.");
+    
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = null;
+      }
+    }
+  };
+  
+  
+
+  const verifyCode = async () => {
+    console.log('Attempting to verify code. Verification ID:', verificationId); // Debug log
+  
+    if (!verificationId) {
+      toast.error("Verification ID is missing.");
+      return;
+    }
+  
+    try {
+      // Create a phone credential using the verification ID and the entered code
+      const phoneAuthCredential = PhoneAuthProvider.credential(verificationId, code);
+  
+      // At this stage, we only verify the credential; we do not sign in
+      setIsVerified(true);
+      toast.success("Phone number verified!");
+      setAreFieldsDisabled(true);
+      setIsStep3Valid(true);
+  
+      // Store this credential or use it when creating the user's account
+      console.log("Phone credential verified and can be used during account creation.");
+    } catch (error) {
+      console.error("Error during verification:", error); // Log for more details
+      toast.error("Invalid verification code. Please try again.");
+    }
+  };
+   
+  
+
   const handleNext = (e) => {
     e.preventDefault();
     if (currentStep === 1 && validateFirstname() && validateLastname() && validateEmail()) {
@@ -176,9 +284,68 @@ const SignUp = ({ changeToLogin }) => {
     setCurrentStep(currentStep - 1);
   };
 
-  const sendVerificationCode = async () => {
-    // Mock implementation for sending verification code
-    toast.success("Verification code sent.");
+  const verifyAndCreateAccount = async (e) => {
+    e.preventDefault();
+
+    if (
+      !firstname ||
+      !lastname ||
+      !handle ||
+      !email ||
+      !password
+    ) {
+      return toast.error("Please fill in all the fields and verify your phone number.");
+    }
+
+    if (password !== confirmPassword) {
+      return toast.error("Passwords do not match.");
+    }
+
+    if (!passwordRegex.test(password)) {
+      return toast.error(
+        "Password must meet all the requirements."
+      );
+    }
+
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const { user } = userCredential;
+
+      await updateProfile(user, { displayName: `${firstname} ${lastname}` });
+
+      const profileRef = doc(db, "profiles", user.uid);
+      await setDoc(profileRef, {
+        userId: user.uid,
+        firstname: firstname,
+        fullname: `${firstname} ${lastname}`,
+        handle: handle,
+        phoneNumber: phoneNumber,
+        isAdmin: false,
+        avatarUrl: user.photoURL || "",
+        createdAt: serverTimestamp(),
+        quickieCount: 0,
+        followersCount: 0,
+        followingCount: 0,
+        followers: [],
+        following: [],
+        bio: "",
+        location: "",
+        website: "",
+        bookmarks: [],
+        likes: [],
+        coverPhoto: ""
+      });
+
+      if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
+        localStorage.setItem("token", await user.getIdToken());
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      toast.success("You are signed up and logged in");
+    } catch (err) {
+      console.error("Error signing up:", err);
+      return displayError(err);
+    }
   };
 
   return (
@@ -317,48 +484,91 @@ const SignUp = ({ changeToLogin }) => {
 
                 {currentStep === 3 && (
                   <>
-                    {/* Verification */}
-                    <Form.Group className="mb-2">
-                      <Form.Label style={labelStyle}>Phone</Form.Label>
-                      <PhoneInput
-                        country={'us'}
-                        disableCountryCode
-                        value={phoneNumber}
-                        onChange={(phone) => setPhoneNumber(phone)}
-                        containerStyle={{ width: '100%' }}
-                        inputStyle={inputStyle}
+                    <PhoneInput
+                      country={'us'}
+                      disableCountryGuess
+                      value={phoneNumber}
+                      onChange={(phone, countryData) => {
+                        // Update phone number without duplicating the country code
+                        if (phone.startsWith(countryData.dialCode)) {
+                          setPhoneNumber(`+${phone}`);
+                        } else {
+                          setPhoneNumber(`+${countryData.dialCode}${phone}`);
+                        }
+                      }}
+                      disableCountryCode={false} // Ensure country code selection is allowed but not typed in manually
+                      containerClass="phoneInputContainer"
+                      inputClass="form-control"
+                      buttonClass="flag-dropdown"
+                      dropdownClass="countryList"
+                      required
+                      {...disableFieldProps}
+                    />
+
+
+                    <Button 
+                      onClick={sendVerificationCode} 
+                      className="mt-2 w-100 loginButton" 
+                      disabled={isButtonDisabled || isVerified}
+                    >
+                      {isButtonDisabled ? `Resend in ${countdown}s` : "Send Verification Code"}
+                    </Button>
+
+                    <Form.Group className="mt-2">
+                      <Form.Label>Verification Code</Form.Label>
+                      <Form.Control 
+                        type="text"
+                        ref={codeInputRef}
+                        className="customInput"
+                        placeholder="Enter the code"
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        {...disableFieldProps}
                       />
                     </Form.Group>
 
-                    <Form.Group className="mb-2">
-                      <Form.Label style={labelStyle}>Verification Code</Form.Label>
-                      <Form.Control
-                        placeholder="Enter verification code"
-                        value={code}
-                        onChange={(e) => setCode(e.target.value)}
-                        style={inputStyle}
-                      />
-                    </Form.Group>
+                    <Button 
+                      onClick={verifyCode} 
+                      className="mt-2 w-100 loginButton"
+                      disabled={isVerified}
+                    >
+                      Verify Code
+                    </Button>
                   </>
                 )}
 
-                <div className="d-flex justify-content-between mt-4">
-                  {currentStep > 1 && (
-                    <Button onClick={handleBack} variant="secondary">Back</Button>
-                  )}
-                  <Button
-                    className="w-100 loginButton"
-                    type="submit"
-                    disabled={
-                      (currentStep === 1 && !isStep1Valid) ||
-                      (currentStep === 2 && !isStep2Valid) ||
-                      (currentStep === 3 && !isStep3Valid)
-                    }
-                  >
-                    {currentStep === 3 ? 'Sign Up' : 'Next'}
-                  </Button>
+                {/* WHERE RECAPTCHA CONTAINER WILL GO (SHOULDN'T MATTER SINCE IT'S INVISIBLE) */}
+                <div id="recaptcha-container"></div>
 
-                </div>
+                {currentStep < 3 && (
+                  <div className="d-flex justify-content-between mt-4">
+                    {currentStep > 1 && (
+                      <Button onClick={handleBack} variant="secondary">Back</Button>
+                    )}
+                    <Button
+                      className="w-100 loginButton"
+                      type="submit"
+                      disabled={
+                        (currentStep === 1 && !isStep1Valid) ||
+                        (currentStep === 2 && !isStep2Valid)
+                      }
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+
+                {/* Show "Sign Up" button only if phone number is verified */}
+                {currentStep === 3 && isVerified && (
+                  <Button 
+                    onClick={verifyAndCreateAccount} 
+                    className="mt-2 w-100 loginButton"
+                    disabled={!isVerified} // Disable if not verified
+                  >
+                    Sign Up
+                  </Button>
+                )}
+
                 <div className="text-center mt-3 mb-5">
                   <span style={{ cursor: "pointer" }} onClick={changeToLogin}>
                     Have an account? Login
