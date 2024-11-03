@@ -570,7 +570,12 @@ const SignUp = ({ changeToLogin }) => {
                 )}
 
                 <div className="text-center mt-3 mb-5">
-                  <span style={{ cursor: "pointer" }} onClick={changeToLogin}>
+                  <span style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      // Force a page reload to clear reCAPTCHA and reset the component state
+                      window.location.reload();
+                      changeToLogin();
+                    }}>
                     Have an account? Login
                   </span>
                 </div>
