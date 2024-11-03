@@ -47,6 +47,13 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
 
   const codeInputRef = useRef(null); // Reference for the verification code input field
 
+
+  {/*
+    Recaptcha Container
+    -------------------
+    This useEffect is used to set and reset the recaptchaVerifier
+    in the event that it bugs out when it's called.   
+  */}
   useEffect(() => {
     return () => {
       if (window.recaptchaVerifier) {
@@ -55,6 +62,13 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
     };
   }, []);
 
+  {/*
+    Automatically Send 2FA SMS
+    --------------------------
+    If the login.js prompts reCaptcha and 2FA,
+    then automatically send the user the SMS code
+    and focus the input field (for better ux).
+  */}
   useEffect(() => {
     if (isTwoFactorRequired && resolver) {
       sendVerificationCode(); // Automatically trigger the 2FA code when 2FA is required
@@ -62,43 +76,67 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
     }
   }, [isTwoFactorRequired, resolver]);
 
+
+  {/*
+    Check User Credentials
+    ----------------------
+    Check to see if the user has input credentials.
+    Then, check those credentials against the Firestore database.
+    If the user needs 2FA, then begin the 2FA process by starting the resolver.
+    If not, put their session into the localStorage and log them in.
+  */}
   const handleLogin = async (e) => {
     e.preventDefault();
 
+    /* Input validation */
     if (!email.value || !password.value) {
       return toast.error("Please fill in all fields.");
     }
 
+    /* Attempt to log the user in */
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
       const { user } = userCredential;
       localStorage.setItem("token", await user.getIdToken());
       localStorage.setItem("user", JSON.stringify(user));
       toast.success("You are logged in.");
-    } catch (error) {
+    }
+    /* ERROR: USER NEEDS 2FA SMS. BEGIN THAT PROCESS */
+    catch (error) {
       if (error.code === "auth/multi-factor-auth-required") {
         const resolver = getMultiFactorResolver(auth, error);
         setResolver(resolver);
         setIsTwoFactorRequired(true);
         toast.info("2FA required. Sending verification code.");
-      } else {
+      }
+      /* ERROR: THE USER HAS INCORRECT CREDENTIALS OR SYSTEM ERROR. */
+      else {
         return displayError(error);
       }
     }
   };
 
+  {/*
+    Send SMS verification code to user
+    ----------------------------------
+    If the user requires 2FA SMS, then send them 
+    the verification code by validating request using reCaptcha, 
+    starting the resolver, and finally sending them the SMS.
+    (These are steps required by GOOGLE)
+  */}
   const sendVerificationCode = async () => {
     if (!resolver) {
       toast.error("Multi-factor resolver is missing.");
       return;
     }
   
+    /* Create new reCaptcha instance */
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(
-        auth,
+        auth, // MAKE THIS THE FIRST ARGUMENT OF ELSE EVERYTHING WILL BREAK!!!!!
         "recaptcha-container", 
         {
-          size: "invisible",
+          size: "invisible", // Don't let the user see the reCaptcha logo
           callback: (response) => {
             console.log("reCAPTCHA solved.");
           },
@@ -109,6 +147,7 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
       );
     }
     
+    /* Send SMS code to user */
     try {
       const phoneInfoOptions = {
         multiFactorHint: resolver.hints[selectedIndex],
@@ -137,12 +176,20 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
       codeInputRef.current?.focus(); // Focus the code input field after sending the code
     } catch (error) {
       toast.error("Failed to send verification code. Please try again.");
-      if (window.recaptchaVerifier) {
+      if (window.recaptchaVerifier) { // Reset reCaptcha again per attempt (Google standards)
         window.recaptchaVerifier.clear();
       }
     }
   };
 
+  {/*
+    Verify SMS code
+    ---------------
+    This simply compares the code the user input against
+    what the PhoneAuthProvider sent to see if it's true.
+    If it is, begin the users session.
+    If it's not, give error.
+  */}
   const verifyCode = async () => {
     if (!verificationId || !resolver) {
       toast.error("Verification ID or resolver missing.");
@@ -163,11 +210,20 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
     }
   };
 
+  {/*
+    Redirect user to forgot password page
+    -------------------------------------
+  */}
   const handleForgotPassword = () => {
     toast.info("Redirecting to password reset page...");
     changeToForgotPass();
   };
 
+  {/*
+    QOL: Allow 'enter'/'return' button to be used
+    ---------------------------------------------
+    Used so users can speed up inputting their information.
+  */}
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -182,16 +238,23 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
   return (
     <Container fluid className="d-flex align-items-center justify-content-center" id="overallContainer">
       <Row className="d-flex align-items-center justify-content-center">
+
+        {/* COMPANY LOGO */}
         <Col xs={12} md={6} className="d-none d-sm-block d-flex justify-content-center align-items-center">
           <img src={companyLogo} className="col-md-8 col-lg-6" alt="Company Logo" />
         </Col>
   
+        {/* HEXAGON BOX */}
         <Col xs={12} md={6}>
           <HexagonBox backgroundColor="rgb(114, 0, 0)" textColor="white" padding="6rem 5rem">
             <div className="mt-5 mb-5 ml-3 mr-3">
               <Form onKeyDown={handleKeyDown} onSubmit={handleLogin} className="signin-form">
                 <h2 className="text-center mb-3" style={{ fontSize: "2rem", fontWeight: "bold" }}>Log In</h2>
                 
+                {/* LOGIN FORM THAT ALL USERS MUST USE 
+                    ----------------------------------
+                    EMAIL AND PASSWORD AND BUTTON
+                */}
                 {!isTwoFactorRequired && (
                   <>
                     <Form.Group className="mb-2">
@@ -206,6 +269,12 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
                   </>
                 )}
 
+                {/*
+                  2FA SMS IS REQUIRED FOR LOGIN
+                  -----------------------------
+                  RESETS HEXAGON BOX CONTENT TO INCLUDE LOGIC
+                  NEEDED FR SMS (LIKE INPUT VALIDATION FOR SMS CODE AND RESENDING CODE).
+                */}
                 {isTwoFactorRequired && (
                   <>
                     <Button 
@@ -230,8 +299,15 @@ const SignIn = ({ changeToSignup, changeToForgotPass }) => {
                   </>
                 )}
       
+                {/* WHERE RECAPTCHA CONTAINER WILL GO (SHOULDN'T MATTER SINCE IT'S INVISIBLE) */}
                 <div id="recaptcha-container"></div>
                 
+                {/* 
+                  ALTERNATIVE ROUTES:
+                  -------------------
+                  IF THE USER DOES NOT WANT TO LOGIN,
+                  THE USER CAN EITHER SIGNUP OR FORGOT PASSWORD.
+                 */}
                 <div className="text-center mt-2">
                   <span style={{ cursor: "pointer", fontSize: "0.9rem" }} onClick={handleForgotPassword}>Forgot Password?</span>
                 </div>
