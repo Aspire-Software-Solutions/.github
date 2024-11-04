@@ -282,6 +282,14 @@ const SignUp = ({ changeToLogin }) => {
 
   const handleBack = () => {
     setCurrentStep(currentStep - 1);
+
+    // Reset any fields or states specific to step 3 if necessary
+    if (currentStep === 3) {
+      setPhoneNumber(""); // Clear the phone number field if needed
+      setVerificationId(null); // Reset the verification ID
+      setIsVerified(false); // Reset verification status
+      setAreFieldsDisabled(false); // Re-enable the fields
+    }
   };
 
   const verifyAndCreateAccount = async (e) => {
@@ -540,21 +548,23 @@ const SignUp = ({ changeToLogin }) => {
                 {/* WHERE RECAPTCHA CONTAINER WILL GO (SHOULDN'T MATTER SINCE IT'S INVISIBLE) */}
                 <div id="recaptcha-container"></div>
 
-                {currentStep < 3 && (
+                {currentStep >= 1 && (
                   <div className="d-flex justify-content-between mt-4">
-                    {currentStep > 1 && (
+                    {(currentStep > 1)&& (
                       <Button onClick={handleBack} variant="secondary">Back</Button>
                     )}
-                    <Button
-                      className="w-100 loginButton"
-                      type="submit"
-                      disabled={
-                        (currentStep === 1 && !isStep1Valid) ||
-                        (currentStep === 2 && !isStep2Valid)
-                      }
-                    >
-                      Next
-                    </Button>
+                    {(currentStep < 3)&& (
+                      <Button
+                        className="w-100 loginButton"
+                        type="submit"
+                        disabled={
+                          (currentStep === 1 && !isStep1Valid) ||
+                          (currentStep === 2 && !isStep2Valid)
+                        }
+                      >
+                        Next
+                      </Button>
+                    )}
                   </div>
                 )}
 
@@ -573,7 +583,7 @@ const SignUp = ({ changeToLogin }) => {
                   <span style={{ cursor: "pointer" }}
                     onClick={() => {
                       // Force a page reload to clear reCAPTCHA and reset the component state
-                      window.location.reload();
+                      //window.location.reload();
                       changeToLogin();
                     }}>
                     Have an account? Login
