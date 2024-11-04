@@ -9,14 +9,22 @@ import {
   getDocs,
   orderBy,
   limit,
-} from "firebase/firestore"; // Firestore
+} from "firebase/firestore";
 import Loader from "./Loader";
 import Quickie from "./Quickie/Quickie";
 import CustomResponse from "./CustomResponse";
-import { getAuth } from "firebase/auth"; // Firebase Auth
+import { getAuth } from "firebase/auth";
 
 const Wrapper = styled.div`
   margin-bottom: 7rem;
+`;
+
+const StatusDot = styled.span`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: ${(props) => (props.isActive ? "green" : "gray")};
 `;
 
 const FeedList = () => {
@@ -24,6 +32,7 @@ const FeedList = () => {
   const [displayedFeedData, setDisplayedFeedData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [postsToShow, setPostsToShow] = useState(15);
+  const [userStatuses, setUserStatuses] = useState({}); // To store online statuses
   const db = getFirestore();
   const auth = getAuth();
   const [currentUser, setCurrentUser] = useState(auth.currentUser);
