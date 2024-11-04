@@ -11,10 +11,6 @@ import {
   updateProfile,
   RecaptchaVerifier,
   PhoneAuthProvider,
-  PhoneMultiFactorGenerator,
-  signInWithCredential
-  
-
 } from "firebase/auth";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import '../../styles/Login.css'; // Specific Styles for Login.CSS
@@ -33,17 +29,8 @@ import '../../styles/Login.css'; // Specific Styles for Login.CSS
  * allowing flexibility for distinct actions in login and signup.
  */
 const SignUp = ({ changeToLogin }) => {
-  const inputStyle = {
-    height: '32px',
-    padding: '0.25rem 0.5rem',
-    fontSize: '0.9rem',
-    width: '100%',
-    background: 'rgba(255, 255, 255, 0.1)',
-    color: 'white',
-    border: 'none',
-    outline: 'none',
-  };
 
+  // Custom Styling for this page
   const labelStyle = {
     width: '100%',
     textAlign: 'left',
@@ -52,15 +39,44 @@ const SignUp = ({ changeToLogin }) => {
     color: 'white',
   };
 
-  const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
-
+  /**
+   * NAVIGATION FOR SIGNUP:
+   * ----------------------
+   * Due to the constraints posed by HexagonBox, a "step structure" has been implemented.
+   * This means that instead of the user seeing the form in its entirety, it's broken 
+   * up into 'steps'. The first step is the personal information, the second step 
+   * is account information, and the third step is validation.
+   * 
+   * These variables below control what step in the form the user is at, allowing 
+   * for both, forwards and backwards movement.
+   */
   const [currentStep, setCurrentStep] = useState(1);
   const [isStep1Valid, setIsStep1Valid] = useState(false);
   const [isStep2Valid, setIsStep2Valid] = useState(false);
   const [isStep3Valid, setIsStep3Valid] = useState(false);
+
+  /**
+   * MODAL WARNING:
+   * --------------
+   * There is a weird bug in the reCAPTCHA where if the user inputs an invalid 
+   * phone number, the reCAPTCHA doesn't work, and subsequent attempts say 
+   * "ERROR: reCAPTCHA has already been rendered in this element."
+   * 
+   * The way this error doesn't trigger is if the user inputs a valid phone number,
+   * and keeps inputting valid phone numbers.
+   * 
+   * If the recaptcha bug does occur, we must reload the page.
+   * 
+   * This modal tells the user that they must reload the page.
+   */
   const [showBotWarningModal, setShowBotWarningModal] = useState(false);
 
-
+  /**
+   * VARIABLES USED FOR SIGNING UP:
+   * ------------------------------
+   * This stores the user information needed so we can 
+   * create the users account.
+   */
   const [firstname, setFirstname] = useState("");
   const [lastname, setLastname] = useState("");
   const [handle, setHandle] = useState("");
@@ -70,6 +86,25 @@ const SignUp = ({ changeToLogin }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
 
+  /**
+   * PASSWORD REGEX:
+   * ---------------
+   * This is the format that the password must have in order to be considered valid.
+   * For simplicity sake it must:
+   * (?=.*[A-Z]): The password must contain at least one uppercase letter (A-Z).
+   * (?=.*[a-z]): The password must contain at least one lowercase letter (a-z).
+   * (?=.*[0-9]): The password must contain at least one digit (0-9).
+   * (?=.*[!@#$%^&*]): The password must contain at least one special character from the set !@#$%^&*.
+   * .{8,}: The password must be at least 8 characters long.
+  */
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/;
+
+  /**
+   * CHECKING PASSWORDS:
+   * -------------------
+   * This is used to check and ensure that the password meets the passwordRegex 
+   * requirements, and that both the initial and confirmation passwords match. 
+   */
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordRequirements, setPasswordRequirements] = useState({
     length: false,
@@ -80,39 +115,80 @@ const SignUp = ({ changeToLogin }) => {
   });
   const [passwordsMatch, setPasswordsMatch] = useState(true);
 
+  /**
+   * PHONE VERIFICATION:
+   * -------------------
+   * These variables and states below all relate to the phone verification (step 3)
+   * of the sign up process. The user will get a verification code sent to their phone,
+   * after which they have to input it and ensure that the code matches.
+   */
   const [verificationId, setVerificationId] = useState(null); 
-  const [resolver, setResolver] = useState(null); 
-  const [selectedIndex, setSelectedIndex] = useState(0); 
+  const [resolver, setResolver] = useState(null);  // USED TO VERIFY CODE (DOESN'T WORK)
+  const [selectedIndex, setSelectedIndex] = useState(0); // USED TO VERIFY CODE (DOESN'T WORK)
   const codeInputRef = useRef(null); // Reference for the verification code input field
-
-  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // State for disabling the button
-  const [countdown, setCountdown] = useState(10); // Countdown timer state
-
   const [isVerified, setIsVerified] = useState(false); // Track if phone number is verified
   const [areFieldsDisabled, setAreFieldsDisabled] = useState(false); // Track if fields should be disabled
 
-  // Disable fields and show Sign Up button if verified
-  const disableFieldProps = isVerified ? { disabled: true } : {};
+  /**
+   * DISABLED BUTTONS AND COUNTDOWN:
+   * -------------------------------
+   * Because we cannot have nice things, people have already tried to overload the server.
+   * As a result, anytime a verification code has been sent, there's a cooldown on when
+   * the user can send another request.
+   * 
+   * Furthermore, in the event that the code takes some time to reach the user, it allows the 
+   * sever to receive less requests.
+   */
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // State for disabling the button
+  const [countdown, setCountdown] = useState(10); // Countdown timer state
+  const disableFieldProps = isVerified ? { disabled: true } : {};   // Disable fields and show Sign Up button if verified
 
+  /**
+   * FIREBASE CONNECTIONS:
+   * ---------------------
+   * Starting instance of firebase so we can create accounts!
+   */
   const auth = getAuth();
   const db = getFirestore();
 
-  // Combined validation checks for each step
+  /**
+   * 
+   * -----------------
+   * VALIDATION STEPS!
+   * -----------------
+   * 
+   */
+
+  // CHECK TO SEE ALL REQUIREMENTS HAVE BEEN SATISFIED FOR STEP 1
   useEffect(() => {
     setIsStep1Valid(firstname && lastname && email);
   }, [firstname, lastname, email]);
   
+  // CHECK TO SEE IF ALL REQUIREMENTS HAVE BEEN SATISFIED FOR STEP 2
   useEffect(() => {
     const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
     setPasswordsMatch(password === confirmPassword);
     setIsStep2Valid(handle && allRequirementsMet && password && passwordsMatch);
   }, [handle, password, confirmPassword, passwordRequirements, passwordsMatch]);
   
-  
+  // CHECK TO SEE IF ALL REQUIREMENTS HAVE BEEN SATISFIED FOR STEP 3
   useEffect(() => {
     setIsStep3Valid(phoneNumber);
   }, [phoneNumber]);  
 
+  /**
+   * RECAPTCHA:
+   * ----------
+   * THIS S.O.A.B IS THE WORST THING THAT EXISTS IN HUMAN HISTORY.
+   * THIS HAS SUCH SHITTY DOCUMENTATION AND NO SUPPORT.
+   * THE ERRORS IT GIVES OUT DON'T MEAN ANYTHING, AND NOT EVEN GOOGLE CLOUD
+   * COMPUTE RECAPTCHA SUPPORT COULD HELP ME.
+   * THERE ARE THINGS THAT I WANT TO IMPLEMENT BUT CANNOT BECAUSE THE DOCUMENTATION
+   * IS SO SHITTY.
+   * 
+   * Anyways, this starts up the reCAPTCHA service that we need for 
+   * sending SMS 2FA to a user signing up.
+   */
   const initializeRecaptcha = () => {
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(
@@ -130,6 +206,19 @@ const SignUp = ({ changeToLogin }) => {
       );
     }
   };
+
+  /**
+   * 
+   * ---------------------
+   * VALIDATION FUNCTIONS:
+   * ---------------------
+   * I'm going to be honest, I don't know if they work
+   * since sometimes I see them, other times I don't.
+   * 
+   * We shall still keep them since the only thing they throw out are
+   * toast errors hehe.
+   * 
+   */
 
   const validateFirstname = () => {
     if (!firstname) {
@@ -183,6 +272,17 @@ const SignUp = ({ changeToLogin }) => {
     return true;
   };
 
+  /**
+   * SENDING VERIFICATION CODE:
+   * --------------------------
+   * This function starts up the recaptcha service
+   * and proceeds to send a code out to the user.
+   * 
+   * NOTE: IF THE CATCH STATEMENT EVER GETS CALLED,
+   * RECAPTCHA BREAKS AND THE ONLY WAY TO FIX IS TO REFRESH THE PAGE.
+   * 
+   * DON'T ASK ME WHY OR HOW.
+   */
   const sendVerificationCode = async () => {
     initializeRecaptcha();
   
@@ -236,8 +336,12 @@ const SignUp = ({ changeToLogin }) => {
     }
   };
   
-  
-
+  /**
+   * Verification Code:
+   * ------------------
+   * This code ensures that the code the user input
+   * is valid. Then, it enables the signup button to appear.
+   */
   const verifyCode = async () => {
     console.log('Attempting to verify code. Verification ID:', verificationId); // Debug log
   
@@ -250,6 +354,13 @@ const SignUp = ({ changeToLogin }) => {
       // Create a phone credential using the verification ID and the entered code
       const phoneAuthCredential = PhoneAuthProvider.credential(verificationId, code);
   
+      // THIS ACCEPTS ANY VALUE INPUT FOR THE VERIFICATION.
+      // ON ONE HAND THATS ASS BECAUSE IT DOESN'T WORK
+      // BUT IT ONLY SENDS A CODE TO VALID PHONE NUMBERS??
+      // THE ONLY WAY TO CHECK IS TO DO A QUICK SIGN IN CHECK
+      // BUT APPROUTER.JS WILL TAKE YOU TO THE HOME PAGE EVEN THOUGH
+      // YOU DON'T HAVE AN ACCOUNT AND AREN'T AUTH.
+
       // At this stage, we only verify the credential; we do not sign in
       setIsVerified(true);
       toast.success("Phone number verified!");
@@ -264,8 +375,12 @@ const SignUp = ({ changeToLogin }) => {
     }
   };
    
-  
-
+  /**
+   * NAVIGATION:
+   * -----------
+   * Code uses the Navigation variables (listed above) to 'actually' go 
+   * forth through the three signup steps. 
+   */
   const handleNext = (e) => {
     e.preventDefault();
     if (currentStep === 1 && validateFirstname() && validateLastname() && validateEmail()) {
@@ -279,7 +394,14 @@ const SignUp = ({ changeToLogin }) => {
   };
   
 
-
+  /**
+   * CHECKING PASSWORD:
+   * ------------------
+   * Logic for 'actually' checking the password strength that a user put in
+   * using the variables (listed above). 
+   * Also, this function updates a password strength progress bar,
+   * ensuring that the user knows what their password needs to pass.
+   */
   const checkPasswordStrength = (pass) => {
     const requirements = {
       length: pass.length >= 8,
@@ -294,6 +416,12 @@ const SignUp = ({ changeToLogin }) => {
     setPasswordStrength(strength * 20);
   };
 
+    /**
+   * NAVIGATION:
+   * -----------
+   * Code uses the Navigation variables (listed above) to 'actually' go 
+   * BACK through the three signup steps. 
+   */
   const handleBack = () => {
     setCurrentStep(currentStep - 1);
 
@@ -306,9 +434,21 @@ const SignUp = ({ changeToLogin }) => {
     }
   };
 
+  /**
+   * SIGNING USER UP:
+   * ----------------
+   * This function 'actually' creates the users profile and logs them into
+   * the website. 
+   * 
+   * The function first re-validates that all the information is accurate, correct,
+   * and all fields are filled in.
+   * 
+   * Then it creates the firebase account, and logs the user in.
+   */
   const verifyAndCreateAccount = async (e) => {
     e.preventDefault();
 
+    // CHECK TO ENSURE ALL FIELDS ARE FILLED IN
     if (
       !firstname ||
       !lastname ||
@@ -329,6 +469,7 @@ const SignUp = ({ changeToLogin }) => {
       );
     }
 
+    // CREATE USER ACCOUNT
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const { user } = userCredential;
@@ -358,6 +499,7 @@ const SignUp = ({ changeToLogin }) => {
         coverPhoto: ""
       });
 
+      // LOG USER IN IF ACCOUNT IS SUCCESSFULLY CREATED
       if (typeof window !== "undefined" && typeof localStorage !== "undefined") {
         localStorage.setItem("token", await user.getIdToken());
         localStorage.setItem("user", JSON.stringify(user));
@@ -386,6 +528,9 @@ const SignUp = ({ changeToLogin }) => {
               </div>
 
               <Form onSubmit={handleNext} className="signup-form">
+                {/**
+                 * FIRST STEP IN SIGNING UP
+                 */}
                 {currentStep === 1 && (
                   <>
                     {/* Personal Info */}
@@ -427,6 +572,9 @@ const SignUp = ({ changeToLogin }) => {
                   </>
                 )}
 
+                {/**
+                 * SECOND STEP IN SIGNING UP:
+                 */}
                 {currentStep === 2 && (
                   <>
                   <div style={{ marginLeft: '2rem', marginRight: '2rem' }}>
@@ -506,6 +654,9 @@ const SignUp = ({ changeToLogin }) => {
                   </>
                 )}
 
+                {/**
+                 * THIRD STEP IN SIGNING UP
+                 */}
                 {currentStep === 3 && (
                   <>
                   <div style={{ marginLeft: '2rem', marginRight: '2rem' }}>
@@ -572,6 +723,9 @@ const SignUp = ({ changeToLogin }) => {
                 {/* WHERE RECAPTCHA CONTAINER WILL GO (SHOULDN'T MATTER SINCE IT'S INVISIBLE) */}
                 <div id="recaptcha-container"></div>
 
+                {/**
+                 * NAVIGATION BUTTONS
+                 */}
                 {currentStep >= 1 && (
                   <div className="d-flex justify-content-between mt-4" style={{ marginLeft: '1rem', marginRight: '1rem' }}>
                     {(currentStep > 1)&& (
@@ -607,7 +761,7 @@ const SignUp = ({ changeToLogin }) => {
                   <span style={{ cursor: "pointer" }}
                     onClick={() => {
                       // Force a page reload to clear reCAPTCHA and reset the component state
-                      //window.location.reload();
+                      window.location.reload();
                       changeToLogin();
                     }}>
                     Have an account? Login
