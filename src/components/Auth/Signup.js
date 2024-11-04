@@ -520,11 +520,16 @@ const SignUp = ({ changeToLogin }) => {
                       }}
                       disableCountryCode={false} // Ensure country code selection is allowed but not typed in manually
                       containerClass="phoneInputContainer"
-                      inputClass="form-control"
                       buttonClass="flag-dropdown"
                       dropdownClass="countryList"
                       required
                       {...disableFieldProps}
+                      inputStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        paddingLeft: '55px',
+                      }}
+
                     />
 
 
