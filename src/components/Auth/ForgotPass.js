@@ -21,9 +21,11 @@ const ForgotPass = ({ changeToLogin }) => {
   const [identifier, setIdentifier] = useState(""); // Email or username input
   const auth = getAuth();
 
+  // Function to call reset password request (from button)
   const handleResetPassword = async (e) => {
     e.preventDefault();
 
+    // Ensure input exists
     if (!identifier) {
       return toast.error("Please enter your email or username.");
     }
@@ -36,8 +38,9 @@ const ForgotPass = ({ changeToLogin }) => {
         return toast.error("User not found. Please check your email or username.");
       }
 
+      // Use Firebase to send reset email to user
       await sendPasswordResetEmail(auth, user.email);
-      toast.success("Password reset email sent.");
+      toast.success("Password reset sent to your email if the account exists.");
       changeToLogin(); // Redirect back to login after successful email sending
     } catch (error) {
       console.error("Error sending password reset email:", error);
@@ -45,6 +48,7 @@ const ForgotPass = ({ changeToLogin }) => {
     }
   };
 
+  // TODO: IF WE WISH TO EXPAND FURTHER!
   const findUserByEmailOrUsername = async (identifier) => {
     // Here, implement logic to check if identifier is an email or a username
     // You might need to query your Firestore or Realtime Database to find the user
@@ -57,33 +61,36 @@ const ForgotPass = ({ changeToLogin }) => {
       <Row className="d-flex align-items-center justify-content-center">
         <Col xs={12}>
           <HexagonBox backgroundColor="rgb(114, 0, 0)" textColor="white" padding="6rem 5rem">
-          <div className="mt-5 mb-5 ml-3 mr-3">
-            <h2 className="text-center mb-4" style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Forgot Password</h2>
-            
-            <div style={{ marginLeft: '2rem', marginRight: '2rem' }}>
-            <Form onSubmit={handleResetPassword}>
-              <Form.Group className="mb-3">
-                <Form.Label>Account Email</Form.Label>
-                <Form.Control
-                  type="text"
-                  className="customInput"
-                  placeholder="Enter your email"
-                  value={identifier}
-                  onChange={(e) => setIdentifier(e.target.value)}
-                  required
-                />
-              </Form.Group>
-              <Button variant="primary" type="submit" className="w-100 loginButton">
-                Reset Password
-              </Button>
-              <div className="text-center mt-3 mb-5">
-                <span style={{ cursor: "pointer" }} onClick={changeToLogin}>
-                  Remembered your password? Login
-                </span>
+            <div className="mt-5 mb-5 ml-3 mr-3">
+              
+              {/* HEADER */}
+              <h2 className="text-center mb-4" style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Forgot Password</h2>
+              
+              {/* RESET FORM */}
+              <div style={{ marginLeft: '2rem', marginRight: '2rem' }}>
+                <Form onSubmit={handleResetPassword}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Account Email</Form.Label>
+                    <Form.Control
+                      type="text"
+                      className="customInput"
+                      placeholder="Enter your email"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
+                      required
+                    />
+                  </Form.Group>
+                  <Button variant="primary" type="submit" className="w-100 loginButton">
+                    Reset Password
+                  </Button>
+                  <div className="text-center mt-3 mb-5">
+                    <span style={{ cursor: "pointer" }} onClick={changeToLogin}>
+                      Remembered your password? Login
+                    </span>
+                  </div>
+                </Form>
               </div>
-            </Form>
             </div>
-          </div>
           </HexagonBox>
         </Col>
       </Row>
