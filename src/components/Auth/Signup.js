@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
-import { Form, Button, ProgressBar, Container, Row, Col } from "react-bootstrap";
+import { Form, Button, ProgressBar, Container, Row, Col, Modal } from "react-bootstrap";
 import HexagonBox from "../ui/HexagonBox"; 
 import { displayError } from "../../utils";
 import {
@@ -58,6 +58,7 @@ const SignUp = ({ changeToLogin }) => {
   const [isStep1Valid, setIsStep1Valid] = useState(false);
   const [isStep2Valid, setIsStep2Valid] = useState(false);
   const [isStep3Valid, setIsStep3Valid] = useState(false);
+  const [showBotWarningModal, setShowBotWarningModal] = useState(false);
 
 
   const [firstname, setFirstname] = useState("");
@@ -213,12 +214,25 @@ const SignUp = ({ changeToLogin }) => {
       codeInputRef.current?.focus();
     } catch (error) {
       console.error("Error sending verification code:", error);
-      toast.error("Failed to send verification code. Please try again.");
-    
+  
+      // Check for specific reCAPTCHA rendering error
+      if (error.message.includes("reCAPTCHA has already been rendered in this element")) {
+        setShowBotWarningModal(true);
+      } 
+      else if (error.message.includes("FirebaseError: Firebase: Error (auth/invalid-app-credential)")){
+        setShowBotWarningModal(true);
+      }else {
+        toast.error("Failed to send verification code. Please try again.");
+      }
+  
       if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
         window.recaptchaVerifier = null;
       }
+  
+      setVerificationId(null);
+      setIsButtonDisabled(false);
+      setCountdown(10);
     }
   };
   
@@ -594,6 +608,21 @@ const SignUp = ({ changeToLogin }) => {
           </HexagonBox>
         </Col>
       </Row>
+
+      {/* Modal for bot warning */}
+      <Modal show={showBotWarningModal} onHide={() => setShowBotWarningModal(false)} style={{ color: 'black' }}>
+        <Modal.Header closeButton>
+          <Modal.Title>Warning</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>We detected suspicious behavior due to an invalid phone number submission. If you are not a bot, please refresh the page and try again.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={() => window.location.reload()}>
+            Refresh Page
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
