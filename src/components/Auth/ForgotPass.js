@@ -53,31 +53,38 @@ const ForgotPass = ({ changeToLogin }) => {
   };
 
   return (
-    <Container fluid className="d-flex align-items-center justify-content-center vh-100">
-      <Row className="d-flex align-items-center justify-content-center" style={{ width: "100%" }}>
-        <Col xs={12} md={6} className="p-4 border rounded shadow">
-          <h2 className="text-center mb-4" style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Forgot Password</h2>
-          <Form onSubmit={handleResetPassword}>
-            <Form.Group className="mb-3">
-              <Form.Label>Email or Username</Form.Label>
-              <Form.Control
-                type="text"
-                className="customInput"
-                placeholder="Enter your email or username"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                required
-              />
-            </Form.Group>
-            <Button variant="primary" type="submit" className="w-100 loginButton">
-              Reset Password
-            </Button>
-            <div className="text-center mt-3">
-              <span style={{ cursor: "pointer" }} onClick={changeToLogin}>
-                Remembered your password? Login
-              </span>
+    <Container fluid className="d-flex align-items-center justify-content-center" id="overallContainer">
+      <Row className="d-flex align-items-center justify-content-center">
+        <Col xs={12}>
+          <HexagonBox backgroundColor="rgb(114, 0, 0)" textColor="white" padding="6rem 5rem">
+          <div className="mt-5 mb-5 ml-3 mr-3">
+            <h2 className="text-center mb-4" style={{ fontSize: "2.5rem", fontWeight: "bold" }}>Forgot Password</h2>
+            
+            <div style={{ marginLeft: '2rem', marginRight: '2rem' }}>
+            <Form onSubmit={handleResetPassword}>
+              <Form.Group className="mb-3">
+                <Form.Label>Account Email</Form.Label>
+                <Form.Control
+                  type="text"
+                  className="customInput"
+                  placeholder="Enter your email"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                />
+              </Form.Group>
+              <Button variant="primary" type="submit" className="w-100 loginButton">
+                Reset Password
+              </Button>
+              <div className="text-center mt-3 mb-5">
+                <span style={{ cursor: "pointer" }} onClick={changeToLogin}>
+                  Remembered your password? Login
+                </span>
+              </div>
+            </Form>
             </div>
-          </Form>
+          </div>
+          </HexagonBox>
         </Col>
       </Row>
     </Container>
