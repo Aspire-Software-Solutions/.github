@@ -298,7 +298,7 @@ const SignUp = ({ changeToLogin }) => {
     setCurrentStep(currentStep - 1);
 
     // Reset any fields or states specific to step 3 if necessary
-    if (currentStep === 3) {
+    if (currentStep === 3 && !isVerified) {
       setPhoneNumber(""); // Clear the phone number field if needed
       setVerificationId(null); // Reset the verification ID
       setIsVerified(false); // Reset verification status
