@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import styled from "styled-components";
 import { Link } from "react-router-dom";
 import moment from "moment";
 import Avatar from "../../styles/Avatar";
 import DeleteComment from "./DeleteComment";
-import { Timestamp } from "firebase/firestore"; // Import Firebase Timestamp if needed
-import { getAuth } from "firebase/auth"; // Firebase Auth
+import { Timestamp } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getDatabase, ref, onValue } from "firebase/database";
+import { usePresence } from "../Auth/Present";
 
-const defaultAvatarUrl = "/default-avatar.png"; // Default avatar if none provided
+const defaultAvatarUrl = "/default-avatar.png";
 
 const Wrapper = styled.div`
   display: flex;
@@ -59,21 +61,54 @@ const Wrapper = styled.div`
   }
 `;
 
+const PRESENCE_TIMEOUT = 2 * 60 * 1000;
+
 const Comment = ({ comment }) => {
   const { text, userId, userName, userAvatar, createdAt, handle } = comment;
-
-  // Get the current user
+  const [userStatus, setUserStatus] = useState({ isActive: false });
   const auth = getAuth();
   const currentUser = auth.currentUser;
+  const rtdb = getDatabase();
 
-  // Convert Firebase Timestamp to Date object
+  // Function to check if a user should be considered online
+  const isUserActive = (lastChanged) => {
+    if (!lastChanged) return false;
+    const lastChangedTime = new Date(lastChanged).getTime();
+    return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
+  };
+
+  // Effect for subscribing to user's status
+  useEffect(() => {
+    if (!userId) return;
+
+    const statusRef = ref(rtdb, `/status/${userId}`);
+    const unsubscribe = onValue(statusRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setUserStatus({
+          isActive: data.state === 'online' && isUserActive(data.last_changed),
+          lastChanged: data.last_changed
+        });
+      } else {
+        setUserStatus({ isActive: false });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [userId, rtdb]);
+
   const commentDate = createdAt instanceof Timestamp ? createdAt.toDate() : createdAt;
 
   return (
     <Wrapper>
-      {/* Link to user's profile by their userId */}
       <Link to={`/${handle}`}>
-        <Avatar className="avatar" src={userAvatar || defaultAvatarUrl} alt="avatar" />
+        <Avatar 
+          className="avatar" 
+          src={userAvatar || defaultAvatarUrl} 
+          alt="avatar"
+          showStatus
+          isActive={userStatus.isActive}
+        />
       </Link>
       <div className="comment-info">
         <div className="comment-info-user">
@@ -85,7 +120,6 @@ const Comment = ({ comment }) => {
             <span className="secondary">{moment(commentDate).fromNow()}</span>
           </Link>
 
-          {/* Display delete icon next to the timestamp */}
           {currentUser && currentUser.uid === userId && (
             <DeleteComment id={comment.id} commentData={comment} />
           )}

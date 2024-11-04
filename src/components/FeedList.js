@@ -1,13 +1,21 @@
 import React, { useEffect, useState, useRef } from "react";
 import styled from "styled-components";
-import { getFirestore, collection, query, where, onSnapshot, orderBy, limit, startAfter } from "firebase/firestore"; // Firestore
+import { getFirestore, collection, query, where, onSnapshot, orderBy, limit, startAfter } from "firebase/firestore";
 import Loader from "./Loader";
 import Quickie from "./Quickie/Quickie";
 import CustomResponse from "./CustomResponse";
-import { getAuth } from "firebase/auth"; // Firebase Auth
+import { getAuth } from "firebase/auth";
 
 const Wrapper = styled.div`
   margin-bottom: 7rem;
+`;
+
+const StatusDot = styled.span`
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+  background-color: ${(props) => (props.isActive ? "green" : "gray")};
 `;
 
 const FeedList = () => {
@@ -15,6 +23,7 @@ const FeedList = () => {
   const [loading, setLoading] = useState(true);
   const [lastVisible, setLastVisible] = useState(null); // To store the last visible document for pagination
   const [hasMore, setHasMore] = useState(true); // To track if more posts can be loaded
+  const [userStatuses, setUserStatuses] = useState({}); // To store online statuses
   const db = getFirestore();
   const auth = getAuth();
   const currentUser = auth.currentUser;
@@ -52,13 +61,31 @@ const FeedList = () => {
             id: doc.id,
             ...doc.data(),
           }));
-          setFeedData(loadedFeed); // Set the initial feed data
-          setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]); // Set the last visible post
+          setFeedData(loadedFeed);
+          setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+          
+          // Fetch active status for users in the feed
+          fetchActiveStatuses(userAndFollowing);
         } else {
           setHasMore(false); // No more posts to load
         }
         setLoading(false);
       });
+    });
+  };
+
+  // Function to fetch online statuses of friends
+  const fetchActiveStatuses = async (userIds) => {
+    const profileRef = collection(db, "profiles");
+    const statusQuery = query(profileRef, where("userId", "in", userIds));
+
+    onSnapshot(statusQuery, (snapshot) => {
+      const statuses = {};
+      snapshot.forEach((doc) => {
+        statuses[doc.id] = doc.data().isActive;
+      });
+      setUserStatuses(statuses);
+      console.log("===> status ===>", statuses)
     });
   };
 
@@ -85,7 +112,7 @@ const FeedList = () => {
         feedRef,
         where("userId", "in", userAndFollowing),
         orderBy("createdAt", "desc"),
-        startAfter(lastVisible), // Start after the last visible post
+        startAfter(lastVisible),
         limit(15)
       );
 
@@ -95,8 +122,11 @@ const FeedList = () => {
             id: doc.id,
             ...doc.data(),
           }));
-          setFeedData((prevFeedData) => [...prevFeedData, ...moreFeed]); // Append new posts to the existing feed
-          setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]); // Update the last visible post
+          setFeedData((prevFeedData) => [...prevFeedData, ...moreFeed]);
+          setLastVisible(querySnapshot.docs[querySnapshot.docs.length - 1]);
+          
+          // Fetch active status for new users
+          fetchActiveStatuses(userAndFollowing);
         } else {
           setHasMore(false); // No more posts to load
         }
@@ -111,14 +141,14 @@ const FeedList = () => {
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && hasMore) {
-        loadMoreFeed(); // Load more quickies if user reaches the bottom
+        loadMoreFeed();
       }
     });
     if (node) observer.current.observe(node);
   };
 
   useEffect(() => {
-    fetchFeed(); // Load the initial feed when component mounts
+    fetchFeed();
   }, []);
 
   if (loading) return <Loader />;
@@ -127,16 +157,14 @@ const FeedList = () => {
     <Wrapper>
       {feedData.length ? (
         feedData.map((quickie, index) => {
-          // If it's the last quickie in the current feed, attach the observer to trigger loading more
-          if (feedData.length === index + 1) {
-            return (
-              <div ref={lastQuickieElementRef} key={quickie.id}>
-                <Quickie quickie={quickie} />
-              </div>
-            );
-          } else {
-            return <Quickie key={quickie.id} quickie={quickie} />;
-          }
+          const isActive = userStatuses[quickie.userId];
+          
+          return (
+            <div ref={index === feedData.length - 1 ? lastQuickieElementRef : null} key={quickie.id}>
+              <StatusDot isActive={isActive} />
+              <Quickie quickie={quickie} />
+            </div>
+          );
         })
       ) : (
         <CustomResponse text="Follow some people to get some feed updates" />

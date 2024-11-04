@@ -4,14 +4,16 @@ import styled from "styled-components";
 import moment from "moment";
 import DeleteQuickie from "./DeleteQuickie";
 import LikeQuickie from "./LikeQuickie";
-import { BmIcon, BmFillIcon, CommentIcon, ShareIcon, DangerIcon } from "../Icons"; // Added DangerIcon
+import { BmIcon, BmFillIcon, CommentIcon, ShareIcon, DangerIcon } from "../Icons";
 import Avatar from "../../styles/Avatar";
 import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, 
          increment, onSnapshot, getDoc, setDoc, collection, addDoc,
-        } from "firebase/firestore"; // Firestore imports
-import { getAuth } from "firebase/auth"; // Firebase Auth
+        } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getDatabase, ref, onValue } from "firebase/database";
+import { usePresence } from "../Auth/Present";
 import { toast } from "react-toastify";
-import Modal from "../Modal"; // Added Modal import
+import Modal from "../Modal";
 
 const Wrapper = styled.div`
   display: flex;
@@ -93,15 +95,17 @@ const Wrapper = styled.div`
   }
 `;
 
-const ReportButton = styled.button` // Added ReportButton styles
+const ReportButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  color: ${(props) => props.theme.dangerColor}; // Assuming you have a danger color in your theme
+  color: ${(props) => props.theme.dangerColor};
   display: flex;
   align-items: center;
   margin-left: 1rem;
 `;
+
+const PRESENCE_TIMEOUT = 2 * 60 * 1000;
 
 const Quickie = ({ quickie }) => {
   const {
@@ -115,51 +119,64 @@ const Quickie = ({ quickie }) => {
     createdAt,
   } = quickie;
 
-  const [quickieData, setQuickieData] = useState(quickie); // State to hold the real-time quickie data
-  const [isBookmarked, setIsBookmarked] = useState(false); // Track bookmark state
+  const [quickieData, setQuickieData] = useState(quickie);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const [userAvatar, setUserAvatar] = useState(quickie.userAvatar || "/default-avatar.png");
-  const [isModalOpen, setModalOpen] = useState(false); // Track modal state (Added)
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [userStatus, setUserStatus] = useState({ isActive: false });
+  
   const db = getFirestore();
   const auth = getAuth();
+  const rtdb = getDatabase();
   const currentUser = auth.currentUser;
   const history = useHistory();
 
-  const handleTagClick = (tag) => {
-    sessionStorage.setItem("searchTag", tag.replace(/^#/, "")); // Store tag in sessionStorage
-    history.push('/explore'); // Navigate to explore without query params
+  const isUserActive = (lastChanged) => {
+    if (!lastChanged) return false;
+    const lastChangedTime = new Date(lastChanged).getTime();
+    return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
   };
-  
-  /**
-   * OBSERVER PATTERN:
-   * -----------------
-   * 
-   * Observes real-time changes to the quickie data, particularly 
-   * updates in likes and comments. This pattern ensures that the 
-   * UI stays up-to-date without requiring manual refreshes.
-  */
-  // Real-time listener for changes to the individual quickie (including likes)
+
+  // Status listener effect
+  useEffect(() => {
+    if (!userId) return;
+
+    const statusRef = ref(rtdb, `/status/${userId}`);
+    const unsubscribe = onValue(statusRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setUserStatus({
+          isActive: data.state === 'online' && isUserActive(data.last_changed),
+          lastChanged: data.last_changed
+        });
+      } else {
+        setUserStatus({ isActive: false });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [userId, rtdb]);
+
   useEffect(() => {
     const quickieRef = doc(db, "quickies", id);
     const unsubscribe = onSnapshot(quickieRef, (docSnap) => {
       if (docSnap.exists()) {
-        setQuickieData(docSnap.data()); // Update the quickie data in real-time, including likes
+        setQuickieData(docSnap.data());
       }
     });
-    return () => unsubscribe(); // Clean up the listener when the component unmounts
+    return () => unsubscribe();
   }, [db, id]);
 
-  // Listen for avatar updates from the user's profile
   useEffect(() => {
     const profileRef = doc(db, "profiles", userId);
     const unsubscribe = onSnapshot(profileRef, (docSnap) => {
       if (docSnap.exists()) {
-        setUserAvatar(docSnap.data().avatarUrl || "/default-avatar.png"); // Update avatar in real-time
+        setUserAvatar(docSnap.data().avatarUrl || "/default-avatar.png");
       }
     });
-    return () => unsubscribe(); // Clean up listener
+    return () => unsubscribe();
   }, [db, userId]);
 
-  // Fetch bookmark status on component mount if user is logged in
   useEffect(() => {
     const fetchBookmarkStatus = async () => {
       if (currentUser) {
@@ -174,7 +191,11 @@ const Quickie = ({ quickie }) => {
     fetchBookmarkStatus();
   }, [currentUser, db, id]);
 
-  // Share the link to the quickie
+  const handleTagClick = (tag) => {
+    sessionStorage.setItem("searchTag", tag.replace(/^#/, ""));
+    history.push('/explore');
+  };
+
   const handleShareQuickie = () => {
     const quickieLink = `${window.location.origin}/${handle}/status/${id}`;
     navigator.clipboard.writeText(quickieLink)
@@ -191,28 +212,25 @@ const Quickie = ({ quickie }) => {
     try {
       const quickieRef = doc(db, "quickies", id);
       const quickieSnap = await getDoc(quickieRef);
-      const postOwnerId = quickieSnap.data().userId; // Post owner's ID
+      const postOwnerId = quickieSnap.data().userId;
   
       if (quickieData.likes.includes(currentUser.uid)) {
-        // Remove the user's ID from the likes array and decrement likesCount
         await updateDoc(quickieRef, {
           likes: arrayRemove(currentUser.uid),
           likesCount: increment(-1),
         });
       } else {
-        // Add the user's ID to the likes array and increment likesCount
         await updateDoc(quickieRef, {
           likes: arrayUnion(currentUser.uid),
           likesCount: increment(1),
         });
   
-        // Create a notification for the post owner
         const notificationsRef = collection(db, "notifications");
         await addDoc(notificationsRef, {
           type: "like",
-          quickieId: id, // The ID of the quickie that was liked
-          fromUserId: currentUser.uid, // User who liked the quickie
-          userId: postOwnerId, // Notify the post owner
+          quickieId: id,
+          fromUserId: currentUser.uid,
+          userId: postOwnerId,
           createdAt: new Date(),
           isRead: false,
         });
@@ -221,7 +239,6 @@ const Quickie = ({ quickie }) => {
       console.error("Error liking quickie: ", error);
     }
   };
-  
 
   const handleBookmarkQuickie = async () => {
     if (!currentUser) {
@@ -252,32 +269,24 @@ const Quickie = ({ quickie }) => {
   const strList = text.split(" ");
   const processedText = strList.filter((str) => !str.startsWith("#")).join(" ");
 
-  // Render media based on the content type (video or image)
   const renderMedia = () => {
     if (!mediaUrl) return null;
 
-    // Check if the media URL includes video file formats
     const videoFormats = ['mp4', 'webm', 'ogg'];
     const imageFormats = ['jpeg', 'jpg', 'png', 'gif'];
 
     if (videoFormats.some(format => mediaUrl.includes(format))) {
-      return <video controls width="100%" src={mediaUrl}></video>; // Render video
+      return <video controls width="100%" src={mediaUrl}></video>;
     } else if (imageFormats.some(format => mediaUrl.includes(format))) {
-      return <img src={mediaUrl} alt="quickie-file" style={{ width: '100%' }} />; // Render image
+      return <img src={mediaUrl} alt="quickie-file" style={{ width: '100%' }} />;
     } else {
-      return <p>Unsupported media type</p>; // Unsupported file type
+      return <p>Unsupported media type</p>;
     }
-  } 
-
-  const handleReportClick = () => { // Report modal handler (Added)
-    setModalOpen(true);
   };
 
-  const handleCloseModal = () => { // Close modal handler (Added)
-    setModalOpen(false);
-  };
+  const handleReportClick = () => setModalOpen(true);
+  const handleCloseModal = () => setModalOpen(false);
 
-  // Firestore submission logic (Added)
   const handleSubmitReport = async (reportMessage) => {
     try {
       const quickieDocRef = doc(db, "quickies", id);
@@ -327,14 +336,20 @@ const Quickie = ({ quickie }) => {
   return (
     <Wrapper>
       <Link to={`/${handle}`}>
-        <Avatar className="avatar" src={userAvatar} alt="avatar" />
+        <Avatar 
+          className="avatar" 
+          src={userAvatar} 
+          alt="avatar"
+          showStatus
+          isActive={userStatus.isActive}
+        />
       </Link>
   
       <div className="quickie-info">
         <div className="quickie-info-user">
           <Link to={`/${handle}`}>
-            <span className="username">{userName || "Unknown User"}</span> {/* Show fullname */}
-            <span className="secondary">{`@${handle}`}</span> {/* Show handle */}
+            <span className="username">{userName || "Unknown User"}</span>
+            <span className="secondary">{`@${handle}`}</span>
             <span className="secondary">{moment(createdAt?.toDate()).fromNow()}</span>
           </Link>
         </div>
@@ -356,7 +371,7 @@ const Quickie = ({ quickie }) => {
         </div>
   
         <Link to={`/${handle}/status/${id}`}>
-          {renderMedia()} {/* Render video or image */}
+          {renderMedia()}
         </Link>
   
         <div className="quickie-stats">
@@ -374,7 +389,7 @@ const Quickie = ({ quickie }) => {
               <div>
                 <LikeQuickie
                   id={id}
-                  isLiked={quickieData.likes.includes(currentUser.uid)} // Check if current user liked
+                  isLiked={quickieData.likes.includes(currentUser.uid)}
                   likesCount={quickieData.likesCount}
                   handleLikeQuickie={handleLikeQuickie}
                 />
@@ -403,12 +418,12 @@ const Quickie = ({ quickie }) => {
           )}
         </div>
   
-        {isModalOpen && ( // Modal functionality
+        {isModalOpen && (
           <Modal onClose={handleCloseModal} onSubmit={handleSubmitReport} />
         )}
       </div>
     </Wrapper>
-  );  
+  );
 };
 
 export default Quickie;
