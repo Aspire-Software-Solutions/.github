@@ -429,6 +429,7 @@ const SignUp = ({ changeToLogin }) => {
 
                 {currentStep === 2 && (
                   <>
+                  <div style={{ marginLeft: '2rem', marginRight: '2rem' }}>
                     {/* Account Details */}
                     <Form.Group className="mb-2">
                       <Form.Label style={labelStyle}>Handle</Form.Label>
@@ -501,11 +502,13 @@ const SignUp = ({ changeToLogin }) => {
                         className="w-100 customInput"
                       />
                     </Form.Group>
+                  </div>
                   </>
                 )}
 
                 {currentStep === 3 && (
                   <>
+                  <div style={{ marginLeft: '2rem', marginRight: '2rem' }}>
                     <PhoneInput
                       country={'us'}
                       disableCountryGuess
@@ -562,6 +565,7 @@ const SignUp = ({ changeToLogin }) => {
                     >
                       Verify Code
                     </Button>
+                  </div>
                   </>
                 )}
 
@@ -569,7 +573,7 @@ const SignUp = ({ changeToLogin }) => {
                 <div id="recaptcha-container"></div>
 
                 {currentStep >= 1 && (
-                  <div className="d-flex justify-content-between mt-4">
+                  <div className="d-flex justify-content-between mt-4" style={{ marginLeft: '1rem', marginRight: '1rem' }}>
                     {(currentStep > 1)&& (
                       <Button onClick={handleBack} variant="secondary">Back</Button>
                     )}
