@@ -7,6 +7,7 @@ import HexagonBox from "../ui/HexagonBox";
 import { displayError } from "../../utils";
 import {
   getAuth,
+  fetchSignInMethodsForEmail,
   createUserWithEmailAndPassword,
   updateProfile,
   RecaptchaVerifier,
@@ -150,6 +151,15 @@ const SignUp = ({ changeToLogin }) => {
   const [isButtonDisabled, setIsButtonDisabled] = useState(false); // State for disabling the button
   const [countdown, setCountdown] = useState(10); // Countdown timer state
   const disableFieldProps = isVerified ? { disabled: true } : {};   // Disable fields and show Sign Up button if verified
+  
+  /**
+   * DEBOUNCE:
+   * ---------
+   * This variable is used to check variable states so we can save
+   * on reads and writes.
+   *  
+   */
+  let debounceTimeout; // TIMEOUT SO ON STEP 1, WE DON'T CALL THE validateEmail ON EVERY KEYSTROKE
 
   /**
    * FIREBASE CONNECTIONS:
@@ -169,9 +179,24 @@ const SignUp = ({ changeToLogin }) => {
 
   // CHECK TO SEE ALL REQUIREMENTS HAVE BEEN SATISFIED FOR STEP 1
   useEffect(() => {
-    setIsStep1Valid(firstname && lastname && email);
-  }, [firstname, lastname, email]);
+    // Clear any existing timeout when the email changes
+    clearTimeout(debounceTimeout);
   
+    if (email) {
+      // Set a new timeout for email validation after 3 seconds of inactivity
+      debounceTimeout = setTimeout(async () => {
+        const isEmailValid = await validateEmail(email);
+        setIsStep1Valid(isEmailValid && firstname && lastname && email);
+      }, 1500); // 3-second delay
+    } else {
+      setIsStep1Valid(false);
+    }
+  
+    // Cleanup function to clear the timeout if the component unmounts or re-renders
+    return () => clearTimeout(debounceTimeout);
+  }, [email, firstname, lastname]);
+
+
   // CHECK TO SEE IF ALL REQUIREMENTS HAVE BEEN SATISFIED FOR STEP 2
   useEffect(() => {
     const checkValidity = async () => {
@@ -255,12 +280,36 @@ const SignUp = ({ changeToLogin }) => {
     return true;
   };
   
-  const validateEmail = () => {
+  const validateEmail = async () => {
     if (!email) {
       toast.error("Email is required.");
       return false;
     }
-    return true;
+  
+    console.log("Checking Email: ", email);
+
+    // Basic regex to check email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return false;
+    }
+  
+    // Check if the email is already in use in Firebase Authentication
+    try {
+      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+      if (signInMethods.length > 0) {
+        toast.error("Email is already in use. Please use a different email.");
+        return false;
+      }
+  
+      console.log("EMAIL IS NOT IN USE: WE CAN USE IT!")
+      return true;
+    } catch (error) {
+      console.error("Error checking email:", error);
+      toast.error("An error occurred while validating the email. Please try again.");
+      return false;
+    }
   };
   
   const validateHandle = async () => {
@@ -305,6 +354,41 @@ const SignUp = ({ changeToLogin }) => {
       return false;
     }
     return true;
+  };
+
+  /**
+   * 
+   * DEBOUNCE FUNCTIONS:
+   * -------------------
+   * These are the functions that check whether a user has finished inputting 
+   * something into the input box. If the user has left the box, check its validity.
+   * If the user hasn't, wait for 3 seconds after the last keystroke to check!
+   */
+
+  // Debounced email change handler
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+
+    // Clear the previous timeout
+    clearTimeout(debounceTimeout);
+
+    // Set a new timeout for 3 seconds
+    debounceTimeout = setTimeout(async () => {
+      if (newEmail) {
+        const isEmailValid = await validateEmail(newEmail);
+        setIsStep1Valid(isEmailValid && firstname && lastname && newEmail);
+      }
+    }, 3000); // 3-second delay
+  };
+
+  // Email validation on blur
+  const handleEmailBlur = async () => {
+    clearTimeout(debounceTimeout); // Clear any pending timeout to avoid double validation
+    if (email) {
+      const isEmailValid = await validateEmail(email);
+      setIsStep1Valid(isEmailValid && firstname && lastname && email);
+    }
   };
 
   /**
@@ -600,7 +684,7 @@ const SignUp = ({ changeToLogin }) => {
                         placeholder="Enter email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        onBlur={validateEmail}
+                        onBlur={handleEmailBlur}
                         className="w-100 customInput"
                       />
                     </Form.Group>
