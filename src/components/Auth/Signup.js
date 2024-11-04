@@ -546,13 +546,14 @@ const SignUp = ({ changeToLogin }) => {
                         value={code}
                         onChange={(e) => setCode(e.target.value)}
                         {...disableFieldProps}
+                        disabled={!verificationId || isVerified}
                       />
                     </Form.Group>
 
                     <Button 
                       onClick={verifyCode} 
                       className="mt-2 w-100 loginButton"
-                      disabled={isVerified}
+                      disabled={!verificationId || isVerified}
                     >
                       Verify Code
                     </Button>

@@ -150,6 +150,14 @@
     border-bottom-color: #FF4500;
 }
 
+.customInput:disabled {
+  background-color: #b3b3b3; /* A light gray shade */
+  color: #333; /* A dark gray color to indicate it's disabled but readable */
+  cursor: not-allowed; /* Shows the user that the input is disabled */
+  opacity: 0.7; /* Slight transparency for a visual effect */
+}
+
+
 .loginButton{
     border: 0;
     background: rgb(24,24,24);
