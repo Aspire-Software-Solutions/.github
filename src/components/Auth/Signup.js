@@ -12,7 +12,7 @@ import {
   RecaptchaVerifier,
   PhoneAuthProvider,
 } from "firebase/auth";
-import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, collection, getDocs, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import '../../styles/Login.css'; // Specific Styles for Login.CSS
 
 /**
@@ -54,6 +54,14 @@ const SignUp = ({ changeToLogin }) => {
   const [isStep1Valid, setIsStep1Valid] = useState(false);
   const [isStep2Valid, setIsStep2Valid] = useState(false);
   const [isStep3Valid, setIsStep3Valid] = useState(false);
+
+  /**
+   * CHECKING INPUT VALIDATION:
+   * ----------------
+   * These variables below determine whether certain criteria are met:
+   * For example, we want to ensure no two people have the same handle or email:
+   */
+  const [isHandleValid, setIsHandleValid] = useState(false);
 
   /**
    * MODAL WARNING:
@@ -166,10 +174,21 @@ const SignUp = ({ changeToLogin }) => {
   
   // CHECK TO SEE IF ALL REQUIREMENTS HAVE BEEN SATISFIED FOR STEP 2
   useEffect(() => {
-    const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
-    setPasswordsMatch(password === confirmPassword);
-    setIsStep2Valid(handle && allRequirementsMet && password && passwordsMatch);
-  }, [handle, password, confirmPassword, passwordRequirements, passwordsMatch]);
+    const checkValidity = async () => {
+      const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
+      setPasswordsMatch(password === confirmPassword);
+  
+      if (handle) {
+        const isHandleValidResult = await validateHandle();
+        setIsHandleValid(isHandleValidResult);
+      }
+  
+      setIsStep2Valid(isHandleValid && allRequirementsMet && password && passwordsMatch);
+    };
+  
+    checkValidity();
+  }, [handle, password, confirmPassword, passwordRequirements, passwordsMatch, isHandleValid]);
+  
   
   // CHECK TO SEE IF ALL REQUIREMENTS HAVE BEEN SATISFIED FOR STEP 3
   useEffect(() => {
@@ -244,12 +263,28 @@ const SignUp = ({ changeToLogin }) => {
     return true;
   };
   
-  const validateHandle = () => {
+  const validateHandle = async () => {
     if (!handle) {
       toast.error("Handle is required.");
       return false;
     }
-    return true;
+  
+    // Check if the handle already exists in the database
+    try {
+      const querySnapshot = await getDocs(collection(db, "profiles"));
+      const handleExists = querySnapshot.docs.some((doc) => doc.data().handle === handle);
+  
+      if (handleExists) {
+        toast.error("Handle is already taken. Please choose another.");
+        return false;
+      }
+  
+      return true;
+    } catch (error) {
+      console.error("Error checking handle:", error);
+      toast.error("An error occurred while validating the handle.");
+      return false;
+    }
   };
   
   const validatePassword = () => {
