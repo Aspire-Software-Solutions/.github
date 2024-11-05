@@ -24,7 +24,7 @@ import { TrashIcon, PlusIcon } from "../Icons";
 import Avatar from "../../styles/Avatar";
 import Modal from "react-modal";
 import styled from "styled-components";
-import { usePresence } from "../Auth/Present";
+import { usePresence } from "../Auth/Presence";
 import { withTheme } from 'styled-components';
 
 const Wrapper = styled.div`

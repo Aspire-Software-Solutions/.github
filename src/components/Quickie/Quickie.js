@@ -11,7 +11,7 @@ import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove,
         } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { usePresence } from "../Auth/Present";
+import { usePresence } from "../Auth/Presence";
 import { toast } from "react-toastify";
 import Modal from "../Modal"; // Added Modal import
 import HexagonBox from "../ui/HexagonBox";

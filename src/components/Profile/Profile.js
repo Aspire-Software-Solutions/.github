@@ -8,7 +8,7 @@ import Loader from "../Loader";
 import { getFirestore, collection, query, where, onSnapshot, orderBy, doc, getDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { usePresence } from "../Auth/Present";
+import { usePresence } from "../Auth/Presence";
 
 const Wrapper = styled.div`
   padding-bottom: 5rem;

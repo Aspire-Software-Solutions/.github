@@ -10,7 +10,7 @@ import CustomResponse from "../CustomResponse";
 import { getAuth } from "firebase/auth";
 import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { usePresence } from "../Auth/Present";
+import { usePresence } from "../Auth/Presence";
 
 const defaultAvatarUrl = "/default-avatar.png";
 const defaultCoverPhotoUrl = "/default-cover-photo.png";
