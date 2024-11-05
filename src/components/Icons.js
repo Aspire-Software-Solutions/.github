@@ -52,7 +52,7 @@ export const PlusIcon = ({ className, style, onClick }) => (
   <Svg
     fill="none"
     viewBox="0 0 24 24"
-    stroke="#000000"
+    stroke="currentColor"
     strokeWidth="2"
     strokeLinecap="round"
     strokeLinejoin="round"
@@ -92,19 +92,19 @@ export const BackIcon = () => (
 
 
 export const BmIcon = () => (
-  <Svg viewBox="0 0 24 24">
+  <DimmedSvg viewBox="0 0 24 24">
     <g>
       <path d="M19.9 23.5c-.157 0-.312-.05-.442-.144L12 17.928l-7.458 5.43c-.228.164-.53.19-.782.06-.25-.127-.41-.385-.41-.667V5.6c0-1.24 1.01-2.25 2.25-2.25h12.798c1.24 0 2.25 1.01 2.25 2.25v17.15c0 .282-.158.54-.41.668-.106.055-.223.082-.34.082zM12 16.25c.155 0 .31.048.44.144l6.71 4.883V5.6c0-.412-.337-.75-.75-.75H5.6c-.413 0-.75.338-.75.75v15.677l6.71-4.883c.13-.096.285-.144.44-.144z"></path>
     </g>
-  </Svg>
+  </DimmedSvg>
 );
 
 export const BmFillIcon = () => (
-  <Svg viewBox="0 0 24 24">
+  <DimmedSvg viewBox="0 0 24 24">
     <g>
       <path d="M19 22.75c-.157 0-.313-.05-.442-.144L12 17.928l-6.558 4.678c-.228.163-.53.19-.782.06-.25-.127-.41-.384-.41-.667V5.25c0-1.24 1.01-2.25 2.25-2.25h9.5c1.24 0 2.25 1.01 2.25 2.25v16.828c0 .282-.158.54-.41.667-.106.055-.223.083-.34.083z"></path>
     </g>
-  </Svg>
+  </DimmedSvg>
 );
 
 export const NotificationIcon = () => (
@@ -124,28 +124,14 @@ export const ProfileIcon = () => (
 );
 
 export const ShareIcon = () => (
-  <Svg viewBox="0 0 24 24">
+  <DimmedSvg viewBox="0 0 32 32">
     <g>
       <path
-        d="M20 13L20 18C20 19.1046 19.1046 20 18 20L6 20C4.89543 20 4 19.1046 4 18L4 13"
-        fill="none"
-        stroke="#000000"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M16 8L12 4M12 4L8 8M12 4L12 16"
-        fill="none"
-        stroke="#000000"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+        d="M27 22c-1.646 0-3.103 0.8-4.013 2.028l-13.168-6.71c0.114-0.421 0.181-0.86 0.181-1.317 0-0.572-0.101-1.119-0.277-1.63l13.242-6.426c0.909 1.244 2.375 2.056 4.035 2.056 2.762 0 5-2.239 5-5s-2.238-5-5-5-5 2.239-5 5c0 0.388 0.049 0.764 0.133 1.127l-13.432 6.518c-0.915-1.009-2.231-1.646-3.7-1.646-2.761 0-5 2.239-5 5s2.239 5 5 5c1.59 0 3.004-0.744 3.92-1.902l13.222 6.739c-0.09 0.374-0.142 0.762-0.142 1.163 0 2.761 2.238 5 5 5s5-2.239 5-5-2.238-5-5-5zM27 2c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zM5 19c-1.657 0-3-1.343-3-3s1.343-3 3-3c1.657 0 3 1.344 3 3s-1.343 3-3 3zM27 30c-1.657 0-3-1.343-3-3s1.343-3 3-3 3 1.343 3 3-1.343 3-3 3z"
+      ></path>
     </g>
-  </Svg>
+  </DimmedSvg>
 );
-
 
 
 export const ThemeIcon = ({ color, sm }) => (
@@ -197,7 +183,7 @@ export const HeartIcon = ({ onClick }) => (
   </DimmedSvg>
 );
 
-// originally for requickies, commented out since wew wont use it, unless...
+// originally for requickies, commented out since we wont use it, unless...
 /*
 export const RequickieIcon = ({ onClick, loading }) => (
   <DimmedSvg
@@ -320,7 +306,7 @@ export const MoreIcon = (
 );
 
 export const DangerIcon = () => (
-  <Svg
+  <DimmedSvg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"
     width="24"
@@ -331,7 +317,7 @@ export const DangerIcon = () => (
       <path d="M11.001 9h2v5h-2zm0 7h2v2h-2z"></path>
       <path d="M1 21h22L12 2 1 21zM12 4.3l7.38 13.4H4.62L12 4.3z"></path>
     </g>
-  </Svg>
+  </DimmedSvg>
 );
 
 export const AdminIcon = ({ width = 24, height = 24, color = "#ff6347" }) => {

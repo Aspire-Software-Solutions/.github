@@ -21,7 +21,7 @@ const Wrapper = styled.div`
 
 const NotificationItem = styled.div`
   padding: 0.75rem 1rem;
-  background-color: ${(props) => (props.isRead ? "#f0f0f0" : "#fff")};
+  background-color: ${(props) => (props.isRead ? props.theme.overlay : props.theme.background)};
   border-bottom: 1px solid ${(props) => props.theme.tertiaryColor};
   cursor: pointer;
   position: relative; /* For positioning the dismiss button */
@@ -185,9 +185,9 @@ const Notifications = ({ updateUnreadCount }) => {
               style={{ textDecoration: "none", color: "inherit" }}
             >
               <NotificationItem isRead={notification.isRead}>
-              {notification.type === "like" && <p>Hey! {notification.fromUserHandle} liked your quickie.</p>}
+              {notification.type === "like" && <p>Hey! {notification.fromUserHandle} liked your attack.</p>}
               {notification.type === "follow" && <p>Good news! {notification.fromUserHandle} just followed you!</p>}
-              {notification.type === "comment" && <p>{notification.fromUserHandle} commented on your quickie.</p>}
+              {notification.type === "comment" && <p>{notification.fromUserHandle} commented on your attack.</p>}
 
               {/* Handle content moderation-related notifications */}
               {notification.type === "moderation" && (

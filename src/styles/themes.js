@@ -11,7 +11,7 @@ export const lightTheme = {
   overlay: "rgba(147, 149, 150, 0.4)",
   font: "Poppins",
   bs1: "0 0 6px 3px rgba(0, 0, 0, 0.1)",
-  // You can add new properties here if needed for the light theme
+  // add new properties here if needed for the light theme
 };
 
 export const darkTheme = {
@@ -26,7 +26,7 @@ export const darkTheme = {
   font: "Poppins",
   bs1: "0 0 6px 3px rgba(0, 0, 0, 0.3)", // Adjusted shadow for dark theme
 
-  // Additional properties for your components
+  // Additional properties for components
   inputBackground: "transparent", // Transparent input background
   placeholderColor: "rgba(255, 255, 255, 0.7)", // Lighter placeholder text
   focusColor: "#FF4500", // Orange-red for focus states
