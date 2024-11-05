@@ -186,31 +186,15 @@ const Profile = () => {
 
   if (loading) return <Loader />;
 
-  const { firstname, lastname, fullname } = profileData || {};
-  const displayName = firstname && lastname ? `${firstname} ${lastname}` : fullname || "No name provided";
-
   return (
     <Wrapper>
       <Header>
         <div className="profile-top">
           {profileData ? (
             <>
-              <div style={{ display: "flex", alignItems: "center" }}>
-                <StatusDot isActive={currentProfileStatus.isActive} />
-                <span className="fullname">{displayName}</span>
-              </div>
               <span className="quickieCount">
                 {quickies.length ? `${quickies.length} Attacks` : "No Attacks"}
               </span>
-              <div>
-                <h4>Following Active Statuses:</h4>
-                {Object.values(followingStatuses).map(({ id, isActive, name, firstname, lastname, error }) => (
-                  <div key={id} style={{ display: "flex", alignItems: "center" }}>
-                    <StatusDot isActive={isActive} error={error} />
-                    <span>{firstname && lastname ? `${firstname} ${lastname}` : name}</span>
-                  </div>
-                ))}
-              </div>
             </>
           ) : (
             <span>Profile not found</span>

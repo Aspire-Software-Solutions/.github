@@ -24,8 +24,8 @@ const StyledImage = styled.img`
 
 const StatusDot = styled.span`
   position: absolute;
-  bottom: 10%;
-  right: 10%;
+  bottom: 2px;
+  right: 0px;
   width: ${(props) => (props.lg ? "16px" : "12px")};
   height: ${(props) => (props.lg ? "16px" : "12px")};
   border-radius: 50%;
@@ -33,6 +33,13 @@ const StatusDot = styled.span`
   border: 2px solid white;
   transition: background-color 0.3s ease;
   display: ${(props) => (props.showStatus ? "block" : "none")};
+  
+  @media screen and (max-width: 530px) {
+    width: ${(props) => (props.lg ? "14px" : "12px")};
+    height: ${(props) => (props.lg ? "14px" : "12px")};
+    bottom: 3px;
+    right: 3px;
+  }
 `;
 
 const Avatar = ({ 
