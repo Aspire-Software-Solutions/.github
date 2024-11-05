@@ -6,7 +6,7 @@ import GlobalStyle from "./styles/GlobalStyle";
 import { ThemeContext } from "./context/ThemeContext";
 import Router from "./AppRouter";
 import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase Auth
-import { PresenceProvider } from "./components/Auth/Present";
+import { PresenceProvider } from "./components/Auth/Presence";
 
 const App = () => {
   const { theme } = useContext(ThemeContext);

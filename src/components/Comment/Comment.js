@@ -7,7 +7,7 @@ import DeleteComment from "./DeleteComment";
 import { Timestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getDatabase, ref, onValue } from "firebase/database";
-import { usePresence } from "../Auth/Present";
+import { usePresence } from "../Auth/Presence";
 
 const defaultAvatarUrl = "/default-avatar.png";
 

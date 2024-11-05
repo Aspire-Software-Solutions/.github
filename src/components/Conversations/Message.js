@@ -3,7 +3,7 @@ import Avatar from "../../styles/Avatar";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { Link } from "react-router-dom";
-import { usePresence } from "../Auth/Present";
+import { usePresence } from "../Auth/Presence";
 
 const PRESENCE_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
 

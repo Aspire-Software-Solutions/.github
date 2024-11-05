@@ -12,7 +12,7 @@ import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "
 import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 import { getDatabase, ref as rtdbRef, onValue } from "firebase/database";
-import { usePresence } from "../Auth/Present";
+import { usePresence } from "../Auth/Presence";
 
 const defaultAvatarUrl = "/default-avatar.png";
 
