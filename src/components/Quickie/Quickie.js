@@ -12,6 +12,7 @@ import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove,
 import { getAuth } from "firebase/auth"; // Firebase Auth
 import { toast } from "react-toastify";
 import Modal from "../Modal"; // Added Modal import
+import HexagonBox from "../ui/HexagonBox";
 
 const Wrapper = styled.div`
   display: flex;
@@ -38,6 +39,11 @@ const Wrapper = styled.div`
   span.tag {
     color: ${(props) => props.theme.accentColor};
     margin-right: 0.4rem;
+    cursor: pointer;
+    transition: color 0.2s; 
+    &:hover {
+      color: ${(props) => props.theme.primaryColor};
+    }
   }
 
   div.quickie-stats {
@@ -62,7 +68,6 @@ const Wrapper = styled.div`
     span.comment {
       svg {
         position: relative;
-        top: 4px;
       }
     }
   }
@@ -206,21 +211,25 @@ const Quickie = ({ quickie }) => {
           likesCount: increment(1),
         });
   
-        // Create a notification for the post owner
-        const notificationsRef = collection(db, "notifications");
-        await addDoc(notificationsRef, {
-          type: "like",
-          quickieId: id, // The ID of the quickie that was liked
-          fromUserId: currentUser.uid, // User who liked the quickie
-          userId: postOwnerId, // Notify the post owner
-          createdAt: new Date(),
-          isRead: false,
-        });
+        // **Only create a notification if the liker is not the post owner**
+        if (currentUser.uid !== postOwnerId) {
+          // Create a notification for the post owner
+          const notificationsRef = collection(db, "notifications");
+          await addDoc(notificationsRef, {
+            type: "like",
+            quickieId: id, // The ID of the quickie that was liked
+            fromUserId: currentUser.uid, // User who liked the quickie
+            userId: postOwnerId, // Notify the post owner
+            createdAt: new Date(),
+            isRead: false,
+          });
+        }
       }
     } catch (error) {
       console.error("Error liking quickie: ", error);
     }
   };
+  
   
 
   const handleBookmarkQuickie = async () => {
@@ -240,7 +249,7 @@ const Quickie = ({ quickie }) => {
         await updateDoc(profileRef, {
           bookmarks: arrayUnion(id),
         });
-        toast.success("Quickie bookmarked");
+        toast.success("Attack bookmarked");
       }
       setIsBookmarked(!isBookmarked);
     } catch (error) {

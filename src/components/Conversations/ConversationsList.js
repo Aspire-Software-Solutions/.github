@@ -23,6 +23,7 @@ import { TrashIcon, PlusIcon } from "../Icons";
 import Avatar from "../../styles/Avatar";
 import Modal from "react-modal";
 import styled from "styled-components";
+import { withTheme } from 'styled-components';
 
 const Wrapper = styled.div`
   .conversation-item {
@@ -31,19 +32,19 @@ const Wrapper = styled.div`
     align-items: center;
     justify-content: space-between; /* Space between to push trash icon to the right */
     padding: 10px 0;
-    border-bottom: 1px solid #ccc;
+    border-bottom: 1px solid ${(props) => props.theme.tertiaryColor};
     cursor: pointer; /* Indicate that the item is clickable */
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: #f9f9f9; /* Light gray background on hover */
+      background-color: ${(props) => props.theme.bgHover};
     }
 
     .unread-indicator {
       position: absolute;
       width: 10px;
       height: 10px;
-      background-color: blue;
+      background-color: ${(props) => props.theme.accentColor};
       border-radius: 50%;
       margin-left: 400px;
     }  
@@ -70,11 +71,11 @@ const Wrapper = styled.div`
 
         .names {
           font-weight: bold;
-          color: #333;
+          color: ${(props) => props.theme.primaryTextColor};
         }
 
         .last-message {
-          color: #888;
+          color: ${(props) => props.theme.secondaryTextColor};
           font-size: 14px;
         }
       }
@@ -97,13 +98,15 @@ const Wrapper = styled.div`
 
     h2 {
       margin: 0;
+      color: ${(props) => props.theme.primaryTextColor};
     }
 
     .plus-icon {
       cursor: pointer;
-      width: 32px; /* Increased size */
+      width: 32px;
       height: 32px;
       transition: transform 0.2s;
+      color: ${(props) => props.theme.primaryTextColor};
 
       &:hover {
         transform: scale(1.1); /* Slightly enlarge on hover */
@@ -113,8 +116,8 @@ const Wrapper = styled.div`
 
   /* Hover effect for the Plus Icon */
   .plus-icon:hover {
-    color: #720000; /* Change color on hover if needed */
-  }
+    fill: ${(props) => props.theme.accentColor}; 
+    stroke: ${(props) => props.theme.accentColor}; 
 `;
 
 /**
@@ -128,7 +131,7 @@ const Wrapper = styled.div`
  * This pattern is particularly useful for group conversations, 
  * which may contain multiple participants and submessages.
 */
-const ConversationsList = () => {
+const ConversationsList = (props) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -139,6 +142,7 @@ const ConversationsList = () => {
   const functions = getFunctions();
   const currentUser = auth.currentUser;
   const history = useHistory();
+  const { theme } = props;
 
   const fetchParticipants = async (members) => {
     const participantProfiles = [];
@@ -437,6 +441,7 @@ const ConversationsList = () => {
             padding: "20px",
             inset: "50% auto auto 50%",
             transform: "translate(-50%, -50%)",
+            backgroundColor: theme.background,
           },
         }}
       >
@@ -473,4 +478,4 @@ const ConversationsList = () => {
   );
 };
 
-export default ConversationsList;
+export default withTheme(ConversationsList);

@@ -6,7 +6,16 @@ import useInput from "../../hooks/useInput";
 import Button from "../../styles/Button";
 import { displayError } from "../../utils";
 import Avatar from "../../styles/Avatar";
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, increment, collection, addDoc } from "firebase/firestore"; // Firebase Firestore imports
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  updateDoc,
+  arrayUnion,
+  increment,
+  collection,
+  addDoc,
+} from "firebase/firestore"; // Firebase Firestore imports
 import { getAuth } from "firebase/auth"; // Firebase Auth import
 
 const defaultAvatarUrl = "/default-avatar.png";
@@ -103,7 +112,7 @@ const AddComment = ({ id }) => {
       // Fetch the quickie document to get the owner's userId
       const quickieRef = doc(db, "quickies", id);
       const quickieSnap = await getDoc(quickieRef);
-      
+
       // Ensure the quickie exists before proceeding
       if (!quickieSnap.exists()) {
         return toast.error("Quickie not found.");
@@ -124,16 +133,19 @@ const AddComment = ({ id }) => {
         commentsCount: increment(1), // Increment the comment count
       });
 
-      // Create a notification for the post owner
-      const notificationsRef = collection(db, "notifications");
-      await addDoc(notificationsRef, {
-        type: "comment",
-        quickieId: id, // The ID of the quickie that was commented on
-        fromUserId: user.uid, // User who commented
-        userId: postOwnerId, // Notify the post owner
-        createdAt: new Date(),
-        isRead: false,
-      });
+      // **Only create a notification if the commenter is not the post owner**
+      if (user.uid !== postOwnerId) {
+        // Create a notification for the post owner
+        const notificationsRef = collection(db, "notifications");
+        await addDoc(notificationsRef, {
+          type: "comment",
+          quickieId: id, // The ID of the quickie that was commented on
+          fromUserId: user.uid, // User who commented
+          userId: postOwnerId, // Notify the post owner
+          createdAt: new Date(),
+          isRead: false,
+        });
+      }
 
       toast.success("Your reply has been added");
     } catch (err) {
