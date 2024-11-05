@@ -20,8 +20,9 @@ const Wrapper = styled.div`
   padding-bottom: 1rem;
 
   .avatar {
-    margin-left: 1.4rem;
-    margin-top: -4rem;
+    // margin-left: 1.4rem;
+    // margin-top: -4rem;
+    margin-left: 12%;
   }
 
   .profile-name-handle {
