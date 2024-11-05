@@ -280,34 +280,58 @@ const SignUp = ({ changeToLogin }) => {
     return true;
   };
   
+  /**
+   * ---------------
+   * PLEASE READ ME
+   * ---------------
+   * 
+   * VALIDATE EMAIL:
+   * ---------------
+   * FETCHSIGNINETHODSFOREMAIL HAS RECENTLY BEEN DEPRECATED.
+   * tHIS MEANS THAT THIS METHOD WILL ALWAYS RETURN AN EMPTY ARRAY.
+   * HOWEVER, WE WILL STILL USE THIS FUNCTION SINCE IT ALLOWS US TO 
+   * CHECK THE EMAIL FORMAT.
+   * 
+   * THE VERIFYANDCREATEACCOUNT METHOD CAN THROW A TOAST ERROR
+   * THAT SAYS "EMAIL IS ALREADY IN USE"
+   * 
+   */
   const validateEmail = async () => {
     if (!email) {
       toast.error("Email is required.");
       return false;
     }
   
-    console.log("Checking Email: ", email);
-
+    // Normalize the email to handle case sensitivity
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log("Checking Email: ", normalizedEmail);
+  
     // Basic regex to check email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(normalizedEmail)) {
       toast.error("Please enter a valid email address.");
       return false;
     }
   
     // Check if the email is already in use in Firebase Authentication
     try {
-      const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+      const signInMethods = await fetchSignInMethodsForEmail(auth, normalizedEmail); // FUNCTION IS DEPRECATED
+      console.log("Sign-in methods found: ", signInMethods);
+  
       if (signInMethods.length > 0) {
         toast.error("Email is already in use. Please use a different email.");
         return false;
       }
   
-      console.log("EMAIL IS NOT IN USE: WE CAN USE IT!")
+      console.log("EMAIL IS NOT IN USE: WE CAN USE IT!");
       return true;
     } catch (error) {
       console.error("Error checking email:", error);
-      toast.error("An error occurred while validating the email. Please try again.");
+      if (error.code === 'auth/quota-exceeded') {
+        toast.error("Email lookup quota exceeded. Please try again later.");
+      } else {
+        toast.error("An error occurred while validating the email. Please try again.");
+      }
       return false;
     }
   };
