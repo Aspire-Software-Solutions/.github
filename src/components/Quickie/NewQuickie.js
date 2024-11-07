@@ -5,12 +5,14 @@ import TextareaAutosize from "react-textarea-autosize";
 import useInput from "../../hooks/useInput";
 import Button from "../../styles/Button";
 import QuickieFile from "../../styles/QuickieFile";
-import { UploadFileIcon, CloseIcon } from "../Icons"; // Import CloseIcon
+import { UploadFileIcon, CloseIcon } from "../Icons";
 import { displayError } from "../../utils";
 import Avatar from "../../styles/Avatar";
-import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore"; // Firestore
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"; // Firebase Storage
-import { getAuth } from "firebase/auth"; // Firebase Authentication
+import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
+import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { getAuth } from "firebase/auth";
+import { getDatabase, ref as rtdbRef, onValue } from "firebase/database";
+import { usePresence } from "../Auth/Presence";
 
 const defaultAvatarUrl = "/default-avatar.png";
 
@@ -66,18 +68,49 @@ const QuickieFileWrapper = styled.div`
   }
 `;
 
-const NewQuickie = () => {
-  const [mediaUrl, setMediaUrl] = useState(null); // Store file preview locally
-  const [mediaFile, setMediaFile] = useState(null); // Store file locally
-  const [userAvatar, setUserAvatar] = useState(defaultAvatarUrl); // State to track user avatar
-  const quickie = useInput("");
-  const db = getFirestore(); // Firestore instance
-  const auth = getAuth(); // Firebase Auth instance
-  const storage = getStorage(); // Firebase Storage instance
+const PRESENCE_TIMEOUT = 2 * 60 * 1000;
 
-  // Fetch the user avatar from Firestore on component mount
+const NewQuickie = () => {
+  const [mediaUrl, setMediaUrl] = useState(null);
+  const [mediaFile, setMediaFile] = useState(null);
+  const [userAvatar, setUserAvatar] = useState(defaultAvatarUrl);
+  const [userStatus, setUserStatus] = useState({ isActive: false });
+  const quickie = useInput("");
+  
+  const db = getFirestore();
+  const auth = getAuth();
+  const storage = getStorage();
+  const rtdb = getDatabase();
+
+  const isUserActive = (lastChanged) => {
+    if (!lastChanged) return false;
+    const lastChangedTime = new Date(lastChanged).getTime();
+    return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
+  };
+
+  // Set up real-time status listener
   useEffect(() => {
-    const fetchUserAvatar = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const statusRef = rtdbRef(rtdb, `/status/${user.uid}`);
+    const unsubscribe = onValue(statusRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setUserStatus({
+          isActive: data.state === 'online' && isUserActive(data.last_changed),
+          lastChanged: data.last_changed
+        });
+      } else {
+        setUserStatus({ isActive: false });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth.currentUser, rtdb]);
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
       const user = auth.currentUser;
       if (user) {
         const userRef = doc(db, "profiles", user.uid);
@@ -85,21 +118,13 @@ const NewQuickie = () => {
 
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          setUserAvatar(userData.avatarUrl || defaultAvatarUrl); // Ensure avatarUrl is used
+          setUserAvatar(userData.avatarUrl || defaultAvatarUrl);
         }
       }
     };
-    fetchUserAvatar();
+    fetchUserDetails();
   }, [auth, db]);
 
-  /**
-   * FACTORY PATTERN:
-   * ----------------
-   * 
-   * Standardizes the creation of a new quickie post, ensuring all
-   * quickies follow the same structure. This pattern simplifies the
-   * codebase, making it easier to manage and extend.
-  */
   const handleNewQuickie = async (e) => {
     e.preventDefault();
 
@@ -114,17 +139,15 @@ const NewQuickie = () => {
         return;
       }
 
-      // Upload media file if one was selected
       let uploadedMediaUrl = null;
       if (mediaFile) {
-        const fileType = mediaFile.type.split("/")[0]; // Check if it's an image or video
-        const storageRef = ref(storage, `quickies/${mediaFile.name}`); // Create a storage reference
+        const fileType = mediaFile.type.split("/")[0];
+        const fileRef = storageRef(storage, `quickies/${mediaFile.name}`);
 
         if (fileType === "video") {
           const video = document.createElement("video");
           video.src = URL.createObjectURL(mediaFile);
 
-          // Wait for the video metadata to load before checking the duration
           video.onloadedmetadata = async function () {
             const duration = video.duration;
             window.URL.revokeObjectURL(video.src);
@@ -134,12 +157,11 @@ const NewQuickie = () => {
               return;
             }
 
-            // Proceed with video upload
-            const uploadTask = uploadBytesResumable(storageRef, mediaFile);
+            const uploadTask = uploadBytesResumable(fileRef, mediaFile);
             await new Promise((resolve, reject) => {
               uploadTask.on(
                 "state_changed",
-                null, // Progress handler
+                null,
                 (error) => {
                   toast.error("Failed to upload video");
                   reject(error);
@@ -152,16 +174,14 @@ const NewQuickie = () => {
               );
             });
 
-            // After video upload, create the quickie
             await addQuickieToFirestore(uploadedMediaUrl, user);
           };
         } else {
-          // Handle image upload
-          const uploadTask = uploadBytesResumable(storageRef, mediaFile);
+          const uploadTask = uploadBytesResumable(fileRef, mediaFile);
           await new Promise((resolve, reject) => {
             uploadTask.on(
               "state_changed",
-              null, // Progress handler
+              null,
               (error) => {
                 toast.error("Failed to upload image");
                 reject(error);
@@ -174,11 +194,9 @@ const NewQuickie = () => {
             );
           });
 
-          // Add the quickie after image upload
           await addQuickieToFirestore(uploadedMediaUrl, user);
         }
       } else {
-        // If no media file, just add the text-only quickie
         await addQuickieToFirestore(null, user);
       }
     } catch (err) {
@@ -192,10 +210,7 @@ const NewQuickie = () => {
 
   const tags = quickie.value.split(" ").filter((str) => str.startsWith("#"));
 
-
-  // Helper function to add quickie to Firestore
   const addQuickieToFirestore = async (mediaUrl, user) => {
-    // Fetch the user's handle from the profiles collection
     const userRef = doc(db, "profiles", user.uid);
     const userSnap = await getDoc(userRef);
 
@@ -204,15 +219,15 @@ const NewQuickie = () => {
       return;
     }
 
-    const { handle } = userSnap.data(); // Get the user's handle
+    const { handle } = userSnap.data();
 
     const newQuickieData = {
       text: quickie.value,
       tags,
-      mediaUrl: mediaUrl || null, // Store mediaUrl if available
+      mediaUrl: mediaUrl || null,
       userId: user.uid,
-      handle, // Add the handle from the profiles collection
-      userAvatar: userAvatar || defaultAvatarUrl, // Use avatarUrl from Firestore
+      handle,
+      userAvatar: userAvatar || defaultAvatarUrl,
       createdAt: serverTimestamp(),
       likes: [],
       userName: user.displayName,
@@ -221,9 +236,7 @@ const NewQuickie = () => {
       commentsCount: 0,
     };
 
-    // Add the new quickie to Firestore
     await addDoc(collection(db, "quickies"), newQuickieData);
-
     toast.success("Your attack has been sent!");
   };
 
@@ -231,7 +244,7 @@ const NewQuickie = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const fileType = file.type.split("/")[0]; // Check if it's an image or video
+    const fileType = file.type.split("/")[0];
     if (fileType === "video") {
       const video = document.createElement("video");
       video.src = URL.createObjectURL(file);
@@ -243,23 +256,29 @@ const NewQuickie = () => {
           return;
         }
         setMediaFile(file);
-        setMediaUrl(URL.createObjectURL(file)); // Display video preview
+        setMediaUrl(URL.createObjectURL(file));
       };
     } else {
-      // Handle image preview
-      setMediaFile(file); // Save the file locally
-      setMediaUrl(URL.createObjectURL(file)); // Display a local preview
+      setMediaFile(file);
+      setMediaUrl(URL.createObjectURL(file));
     }
   };
 
   const handleRemoveMedia = () => {
     setMediaFile(null);
-    setMediaUrl(null); // Clear the preview and the file
+    setMediaUrl(null);
   };
 
   return (
     <Wrapper>
-      <Avatar src={userAvatar || defaultAvatarUrl} alt="avatar" /> {/* Use Firestore Avatar */}
+      <div style={{ display: "flex", alignItems: "center" }}>
+        <Avatar 
+          src={userAvatar || defaultAvatarUrl} 
+          alt="avatar"
+          showStatus
+          isActive={userStatus.isActive}
+        />
+      </div>
       <form onSubmit={handleNewQuickie}>
         <div className="new-quickie">
           <TextareaAutosize
@@ -290,7 +309,7 @@ const NewQuickie = () => {
               </label>
               <input
                 id="file-input"
-                accept="image/*, video/*" // Allow both image and video uploads
+                accept="image/*, video/*"
                 type="file"
                 onChange={handleQuickieFiles}
               />

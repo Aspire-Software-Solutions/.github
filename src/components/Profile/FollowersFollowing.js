@@ -7,7 +7,8 @@ import {
   query,
   where,
   getDocs,
-} from "firebase/firestore"; // Firestore imports
+} from "firebase/firestore";
+import { getDatabase, ref, onValue } from "firebase/database";
 import Loader from "../Loader";
 import Avatar from "../../styles/Avatar";
 
@@ -36,40 +37,40 @@ const Wrapper = styled.div`
   }
 `;
 
+const PRESENCE_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
+
 const FollowersFollowing = () => {
-  const { handle, type } = useParams(); // 'type' will be either 'followers' or 'following'
+  const { handle, type } = useParams();
   const [users, setUsers] = useState([]);
+  const [userStatuses, setUserStatuses] = useState({});
   const [loading, setLoading] = useState(true);
   const db = getFirestore();
+  const rtdb = getDatabase();
+
+  const isUserActive = (lastChanged) => {
+    if (!lastChanged) return false;
+    const lastChangedTime = new Date(lastChanged).getTime();
+    return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
-      setLoading(true);
       try {
-        // Fetch the profile document based on the handle
         const profilesRef = collection(db, "profiles");
         const profileQuery = query(profilesRef, where("handle", "==", handle));
         const profileSnap = await getDocs(profileQuery);
 
         if (!profileSnap.empty) {
-          const profileData = profileSnap.docs[0].data(); // Get the first matching document
-
-          const userIds =
-            type === "followers" ? profileData.followers : profileData.following;
+          const profileData = profileSnap.docs[0].data();
+          const userIds = type === "followers" ? profileData.followers : profileData.following;
 
           if (userIds && userIds.length > 0) {
-            // Fetch the profiles of the followers/following users based on userId field
             const fetchedUsers = [];
-            const batchSize = 10; // Firestore 'in' query limit
+            const batchSize = 10;
 
             for (let i = 0; i < userIds.length; i += batchSize) {
               const batch = userIds.slice(i, i + batchSize);
-
-              const usersQuery = query(
-                profilesRef,
-                where("userId", "in", batch)
-              );
-
+              const usersQuery = query(profilesRef, where("userId", "in", batch));
               const usersSnap = await getDocs(usersQuery);
               usersSnap.forEach((doc) => {
                 fetchedUsers.push(doc.data());
@@ -78,21 +79,46 @@ const FollowersFollowing = () => {
 
             setUsers(fetchedUsers);
           } else {
-            setUsers([]); // No users found in the list
+            setUsers([]);
           }
         } else {
           console.error("Profile not found.");
-          setUsers([]); // Profile not found case
+          setUsers([]);
         }
       } catch (error) {
         console.error("Error fetching users: ", error);
-        setUsers([]); // Error case
+        setUsers([]);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchUsers();
   }, [handle, type, db]);
+
+  useEffect(() => {
+    if (!users.length) return;
+
+    const statusListeners = users.map(user => {
+      const statusRef = ref(rtdb, `/status/${user.userId}`);
+      return onValue(statusRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setUserStatuses(current => ({
+            ...current,
+            [user.userId]: {
+              isActive: data.state === 'online' && isUserActive(data.last_changed),
+              lastChanged: data.last_changed
+            }
+          }));
+        }
+      });
+    });
+
+    return () => {
+      statusListeners.forEach(unsubscribe => unsubscribe());
+    };
+  }, [users, rtdb]);
 
   if (loading) return <Loader />;
 
@@ -103,7 +129,12 @@ const FollowersFollowing = () => {
         {users.length ? (
           users.map((user) => (
             <div key={user.userId} className="user-item">
-              <Avatar src={user.avatarUrl || "/default-avatar.png"} alt={user.handle} />
+              <Avatar 
+                src={user.avatarUrl || "/default-avatar.png"} 
+                alt={user.handle}
+                showStatus
+                isActive={userStatuses[user.userId]?.isActive || false}
+              />
               <div className="user-info">
                 <Link to={`/${user.handle}`}>
                   <span>
