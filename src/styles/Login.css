@@ -150,6 +150,14 @@
     border-bottom-color: #FF4500;
 }
 
+.customInput:disabled {
+  background-color: #b3b3b3; /* A light gray shade */
+  color: #333; /* A dark gray color to indicate it's disabled but readable */
+  cursor: not-allowed; /* Shows the user that the input is disabled */
+  opacity: 0.7; /* Slight transparency for a visual effect */
+}
+
+
 .loginButton{
     border: 0;
     background: rgb(24,24,24);
@@ -159,6 +167,13 @@
 .loginButton:hover{
     background: white;
     color: rgb(24, 24, 24);
+}
+
+.loginButton:disabled {
+  background-color: #b3b3b3; /* Light grey color for disabled state */
+  color: #ffffff; /* White or light grey text color */
+  cursor: not-allowed; /* Optional: Show a "not-allowed" cursor */
+  box-shadow: none; /* Remove shadow for a flat look */
 }
 
 /* Container for the phone input component to maintain 100% width */
@@ -171,24 +186,46 @@
 
 /* Styling for the input field to ensure there's space after the country code */
 .phoneInputContainer .react-tel-input .form-control {
-    padding-left: 60px !important; /* Increase left padding to add space for the flag */
-    padding-right: 15px !important; /* Add a bit of space on the right side too */
-    width: calc(100% - 60px) !important; /* Adjust width to account for the padding */
-    padding-top: 0.75rem !important;
-    padding-bottom: 0.75rem !important;
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 5px !important;
-    font-size: 1rem !important;
-    outline: none !important;
-    box-shadow: none !important;
-    transition: all 0.3s ease !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 5px !important;
+  font-size: 1rem !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: all 0.3s ease !important;
 }
 
+.react-tel-input .form-control {
+  color: white;
+  position: relative;
+  font-size: 14px;
+  margin: 0;
+  margin-top: 1rem !important;
+  border: none !important;
+  padding-left: 40px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  line-height: 35px;
+  height: 35px;
+  width: 100%; /* Ensure full width */
+  outline: none;
+}
+
+
 /* Placeholder styling */
-.phoneInputContainer .react-tel-input .form-control::placeholder {
-    color: rgba(255, 255, 255, 0.7) !important;
+.phoneInputContainer .react-tel-input .form-control {
+  width: 100% !important;
+  padding: 0.75rem !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 5px !important;
+  font-size: 1rem !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Focus styling to match the .customInput focus */
@@ -238,4 +275,45 @@
 /* Hover effect for country list items */
 .countryList .country:hover {
     background: rgba(255, 255, 255, 0.2) !important;
+}
+
+.react-tel-input .country-list .country.highlight {
+  background-color: black !important; /* Apply the wheat color */
+}
+
+.react-tel-input .country-list .country {
+  padding: 0.5rem !important; /* Match padding from your inspect element */
+  color: white !important; /* Set text color to white */
+}
+
+.progress-container {
+  display: flex;
+  justify-content: space-between;
+  width: 60%;
+  margin: auto;
+}
+
+.progress-bar {
+  width: 30%;
+  height: 5px;
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.progress-bar.active {
+  background: #00f; /* Active color */
+}
+
+.password-requirements {
+  display: block;
+  margin-top: 0.5rem; /* Adjust as needed */
+  margin-bottom: 0.5rem; /* Prevents elements from touching */
+  width: 100%; /* Ensures it fits within its container */
+  font-size: 0.8rem; /* Adjust font size as needed */
+  overflow-wrap: break-word; /* Allows breaking if necessary */
+}
+
+.password-requirements span {
+  font-size: 0.85rem; /* Adjust as needed */
+  display: inline-block; /* Ensures consistent layout */
 }
