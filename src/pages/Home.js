@@ -13,7 +13,7 @@ const Home = () => {
         <span>Home</span>
       </Header>
       <NewQuickie /> {/* Updated component name */}
-      <FeedList /> {/* This should now handle quickies correctly */}
+      {/*<FeedList /> {/* This should now handle quickies correctly */}
     </Wrapper>
   );
 };

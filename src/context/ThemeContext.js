@@ -1,7 +1,7 @@
 import React, { useState, createContext } from "react";
 import { darkTheme, lightTheme } from "../styles/themes";
 
-export const ThemeContext = createContext(null);
+export const ThemeContext = React.createContext();
 
 export const ThemeProvider = ({ children }) => {
   const getInitialTheme = () => {
@@ -25,3 +25,5 @@ export const ThemeProvider = ({ children }) => {
     </ThemeContext.Provider>
   );
 };
+
+export default ThemeContext;
