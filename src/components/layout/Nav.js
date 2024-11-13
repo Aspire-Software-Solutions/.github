@@ -18,6 +18,7 @@ import {
   ChatIcon,
   BackIcon,
   AdminIcon,
+  HamburgerIcon
 } from "../Icons";
 import ToggleTheme from "../ToggleTheme";
 
@@ -38,7 +39,7 @@ const Wrapper = styled.nav`
     justify-content: center;
     flex-grow: 1;
     gap: 11rem; /* Adjust spacing between icons in the center */
-    padding-left: 5rem;
+    /*padding-left: rem; used to be 5 rem */
   }
 
   .nav-right {
@@ -48,20 +49,69 @@ const Wrapper = styled.nav`
     gap: 1.5rem; /* Adjust spacing between notification, chat, and profile icons */
   }
 
+
+  .menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+  }
+
+  .nav-dropdown {
+    display: none; /* Hidden on larger screens */
+  }
+
+
+
+  @media (max-width: 750px) {
+      .nav-center,
+      .nav-right
+      {
+        display: none;
+      }
+
+      .profile-menu{
+        display: block;
+      }
+
+      .navdropdown {
+        display: flex;
+        flex-direction: column; /* Stack icons vertically */
+        align-items: flex-start; /* Align icons to the left */
+        gap: 1rem; /* Space between icons */
+        width: 50%; /* Full width for better spacing */
+      }
+
+      .nav-dropdown {
+        display: block; /* Hidden on larger screens */
+        left:0;
+      }
+
+
+      .dropdown {
+        display: block;
+        flex-direction: column; /* Stack icons vertically */
+        align-items: flex-start; /* Align icons to the left */
+        gap: 1rem; /* Space between icons */
+      }
+  }
+
   .profile-menu {
     position: relative;
-    display: flex;
+    display: block;
     align-items: center;
   }
 
   .profile-avatar {
     width: 40px;
     height: 40px;
-    border-radius: 50%;
+    border-radius: 100%;
     cursor: pointer;
     transition: transform 0.3s ease;
     background-color: white; /* Ensures profile avatar has a white circle background */
-    padding: 4px; /* Space around the avatar image */
+    /*padding: 7px;  Space around the avatar image */
   }
 
   .profile-avatar img {
@@ -76,7 +126,7 @@ const Wrapper = styled.nav`
 
   .dropdown {
     position: absolute;
-    top: 100%;
+    top: 130%;
     right: 0;
     background: ${(props) => props.theme.background};
     border: 1px solid ${(props) => props.theme.tertiaryColor};
@@ -126,17 +176,65 @@ const Wrapper = styled.nav`
     stroke: ${(props) => props.theme.accentColor}; /* For outline icons */
   }
 
-  @media screen and (max-width: 530px) {
-    .dropdown {
-      right: 5px;
-    }
-
-    .profile-avatar {
-      width: 30px;
-      height: 30px;
-    }
+  .navdropdown{
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: ${(props) => props.theme.background};
+    border: 1px solid ${(props) => props.theme.tertiaryColor};
+    padding: 0.5rem 1rem;
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    z-index: 5;
+  
+  
   }
+
+  
+
+
+
+  .navdropdown a,
+  .navdropdown button {
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    color: ${(props) => props.theme.primaryColor};
+  }
+
+  .navdropdown button:hover,
+  .navdropdown a:hover {
+    color: ${(props) => props.theme.accentColor};
+  }
+
+  .hamburger {
+  cursor: pointer;
+  transition: color 0.3s ease; /* Smooth color transition */
+  }
+
+  .hamburger:hover {
+    transform: scale(1.1);
+    color: #ff000d; /* Change to your desired hover color */
+  }
+    
+
+  
+
+
+  
+
+
+  
+
 `;
+
+
+
+
+
+
 
 // Style for the notification count badge
 const badgeStyle = {
@@ -164,6 +262,7 @@ const Nav = () => {
   const db = getFirestore();
   const history = useHistory(); // To use history and navigate back
   const location = useLocation(); // To get the current route
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   // Check if the current route should show a back button
   const showBackButton =
@@ -254,6 +353,14 @@ const Nav = () => {
     setIsDropdownOpen((prevState) => !prevState);
   };
 
+  const toggleSidebar = () => {
+    setSidebarOpen((prev) => !prev);
+  };
+  
+
+
+
+
   const handleClickOutside = (event) => {
     if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
       setIsDropdownOpen(false);
@@ -271,10 +378,46 @@ const Nav = () => {
     <Wrapper>
       {/* Conditionally render the back button */}
       {showBackButton && (
-        <div onClick={() => history.goBack()} style={{ cursor: "pointer" }}>
+        <div onClick={() => history.goBack()} style={{ cursor: "pointer" , position: "absolute", left: "4rem" }}>
           <BackIcon />
         </div>
       )}
+
+      <div className = "nav-dropdown">
+        <li className="hamburger" onClick={toggleSidebar}>
+          <HamburgerIcon /> {/* Dropdown icon as equals sign */}
+        </li>
+        {isSidebarOpen && (
+            <div className="navdropdown" ref={dropdownRef}>
+              <NavLink exact activeClassName="selected" to="/" onClick={() => setSidebarOpen(false)}>
+                <HomeIcon />
+                <span>  HOME</span>
+              </NavLink>
+              <NavLink activeClassName="selected" to="/explore" onClick={() => setSidebarOpen(false)}>
+                <ExploreIcon />
+                <span> EXPLORE </span>
+              </NavLink>
+              <NavLink activeClassName="selected" to="/notifications" onClick={() => setSidebarOpen(false)}>
+                <div style={{ display: "flex", alignItems: "center" }}>
+                  <div style={{ position: "relative" }}>
+                  <NotificationIcon />
+                  {unreadCount > 0 && <span style={badgeStyle}>{unreadCount}</span>}
+                  
+                  </div>
+                  <span>..         NOTIFICATIONS</span>
+                </div>
+              </NavLink>
+              <NavLink activeClassName="selected" to="/conversations" onClick={() => setSidebarOpen(false)}>
+                <div style={{ position: "relative" }}>
+                  <ChatIcon /> <span> MESSAGES </span>
+                  {unreadConversationsCount > 0 && (
+                    <span style={badgeStyle}>{unreadConversationsCount}</span>
+                  )}
+                </div>
+              </NavLink>                        
+            </div>
+        )}
+      </div>
 
       <div className="nav-center">
         <li>
@@ -296,6 +439,8 @@ const Nav = () => {
         )}
       </div>
 
+    
+
       <div className="nav-right">
         <NavLink activeClassName="selected" to="/notifications">
           <div style={{ position: "relative" }}>
@@ -313,7 +458,8 @@ const Nav = () => {
           </div>
         </NavLink>
 
-        <div className="profile-menu">
+        
+        {/*<div className="profile-menu">
           <div className="profile-avatar" onClick={toggleDropdown}>
             <img src={userAvatar} alt="Profile" />
           </div>
@@ -323,11 +469,27 @@ const Nav = () => {
               <NavLink to="/bookmarks">Bookmarks</NavLink>
 
               <ToggleTheme /> {/* Inserted theme toggle component */}
+              {/*<button onClick={() => auth.signOut()}>Logout</button>
+            </div>
+          )}
+        </div>*/}
+        
+      </div>
+      
+
+      <div className="profile-menu">
+          <div className="profile-avatar" onClick={toggleDropdown}>
+            <img src={userAvatar} alt="Profile" />
+          </div>
+          {isDropdownOpen && (
+            <div className="dropdown" ref={dropdownRef}>
+              <NavLink to={`/${handle}`} onClick={() => setIsDropdownOpen(false)}>Profile</NavLink>
+              <NavLink to="/bookmarks"onClick={() => setIsDropdownOpen(false)}>Bookmarks</NavLink>
+              <ToggleTheme /> {/* Inserted theme toggle component */}
               <button onClick={() => auth.signOut()}>Logout</button>
             </div>
           )}
         </div>
-      </div>
     </Wrapper>
   );
 };

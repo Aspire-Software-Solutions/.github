@@ -9,9 +9,9 @@ const Wrapper = styled.div``;
 const Home = () => {
   return (
     <Wrapper>
-      <Header>
+      {<Header>
         <span>Home</span>
-      </Header>
+      </Header> }
       <NewQuickie /> {/* Updated component name */}
       <FeedList /> {/* This should now handle quickies correctly */}
     </Wrapper>
