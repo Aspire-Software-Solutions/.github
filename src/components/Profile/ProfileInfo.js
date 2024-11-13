@@ -1,14 +1,16 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useHistory } from "react-router-dom";
 import styled from "styled-components";
 import CoverPhoto from "../../styles/CoverPhoto";
 import Avatar from "../../styles/Avatar";
 import Button from "../../styles/Button";
 import Follow from "./Follow";
-import { LinkIcon } from "../Icons"; // Removed LocationIcon and DobIcon since we don't use location/dob anymore
+import { LinkIcon } from "../Icons";
 import CustomResponse from "../CustomResponse";
 import { getAuth } from "firebase/auth";
-import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc } from "firebase/firestore"; // Firestore imports
+import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
+import { getDatabase, ref, onValue } from "firebase/database";
+import { usePresence } from "../Auth/Presence";
 
 const defaultAvatarUrl = "/default-avatar.png";
 const defaultCoverPhotoUrl = "/default-cover-photo.png";
@@ -18,8 +20,9 @@ const Wrapper = styled.div`
   padding-bottom: 1rem;
 
   .avatar {
-    margin-left: 1.4rem;
-    margin-top: -4rem;
+    // margin-left: 1.4rem;
+    // margin-top: -4rem;
+    margin-left: 12%;
   }
 
   .profile-name-handle {
@@ -63,7 +66,7 @@ const Wrapper = styled.div`
     }
 
     &:hover {
-      color: ${(props) => props.theme.accentColor}; /* Change color on hover */
+      color: ${(props) => props.theme.accentColor};
     }
   }
 
@@ -76,10 +79,10 @@ const Wrapper = styled.div`
     .followers-link, .following-link {
       cursor: pointer;
       text-decoration: none;
-      color: ${(props) => props.theme.secondaryColor}; /* Style the link */
+      color: ${(props) => props.theme.secondaryColor};
 
       &:hover {
-        color: ${(props) => props.theme.accentColor}; /* Change color on hover */
+        color: ${(props) => props.theme.accentColor};
       }
     }
   }
@@ -96,20 +99,49 @@ const Wrapper = styled.div`
   }
 `;
 
+const PRESENCE_TIMEOUT = 2 * 60 * 1000;
+
 const ProfileInfo = ({ profile }) => {
+  const [userStatus, setUserStatus] = useState({ isActive: false });
   const auth = getAuth();
   const currentUser = auth.currentUser;
-  const history = useHistory(); // Moved useHistory inside the component
-  const db = getFirestore(); // Firestore instance
+  const history = useHistory();
+  const db = getFirestore();
+  const rtdb = getDatabase();
 
-  // Determine if the logged-in user is viewing their own profile
-  const isSelf = currentUser && profile && currentUser.uid === profile.userId;
+  const isUserActive = (lastChanged) => {
+    if (!lastChanged) return false;
+    const lastChangedTime = new Date(lastChanged).getTime();
+    return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
+  };
+
+  // Set up real-time status listener for profile user
+  useEffect(() => {
+    if (!profile?.userId) return;
+
+    const statusRef = ref(rtdb, `/status/${profile.userId}`);
+    const unsubscribe = onValue(statusRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setUserStatus({
+          isActive: data.state === 'online' && isUserActive(data.last_changed),
+          lastChanged: data.last_changed
+        });
+      } else {
+        setUserStatus({ isActive: false });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [profile?.userId, rtdb]);
 
   if (!profile) {
     return (
       <CustomResponse text="Oops, you are trying to visit a profile which seems to not exist. Make sure the profile handle exists" />
     );
   }
+
+  const isSelf = currentUser && profile && currentUser.uid === profile.userId;
 
   const {
     coverPhoto,
@@ -122,17 +154,15 @@ const ProfileInfo = ({ profile }) => {
     handle,
     firstname,
     lastname,
-    fullname, // Added fullname field
+    fullname,
   } = profile;
 
-  // Handle the display name logic
   const displayName = firstname && lastname ? `${firstname} ${lastname}` : fullname || "No name provided";
 
   const handleStartConversation = async (userId, userHandle) => {
     if (!currentUser) return;
 
     try {
-      // Check if a conversation between the two users already exists
       const conversationsRef = collection(db, "conversations");
       const q = query(conversationsRef, where("members", "array-contains", currentUser.uid));
       const querySnapshot = await getDocs(q);
@@ -146,7 +176,6 @@ const ProfileInfo = ({ profile }) => {
         }
       });
 
-      // If no conversation exists, create one
       if (!conversationId) {
         const newConversation = await addDoc(collection(db, "conversations"), {
           members: [currentUser.uid, userId],
@@ -159,7 +188,6 @@ const ProfileInfo = ({ profile }) => {
         conversationId = newConversation.id;
       }
 
-      // Redirect to the conversation page
       history.push(`/conversations/${conversationId}`);
     } catch (error) {
       console.error("Error starting conversation:", error);
@@ -167,17 +195,16 @@ const ProfileInfo = ({ profile }) => {
   };
 
   return (
-  /**
-   * DECORATOR PATTERN:
-   * ------------------
-   * 
-   * Adds enhanced visual styling to profile elements without modifying 
-   * the underlying profile data. By using styled components like `Avatar` 
-   * and `CoverPhoto`, we decorate the UI, keeping logic separate from styling.
-  */
     <Wrapper>
       <CoverPhoto src={coverPhoto || defaultCoverPhotoUrl} alt="cover" />
-      <Avatar className="avatar" lg src={avatarUrl || defaultAvatarUrl} alt="profile" />
+      <Avatar 
+        className="avatar" 
+        lg 
+        src={avatarUrl || defaultAvatarUrl} 
+        alt="profile"
+        showStatus
+        isActive={userStatus.isActive}
+      />
 
       {isSelf ? (
         <Link to="/settings/profile">
@@ -205,7 +232,7 @@ const ProfileInfo = ({ profile }) => {
       )}
 
       <div className="profile-name-handle">
-        <span className="fullname">{displayName}</span> {/* Updated to use displayName */}
+        <span className="fullname">{displayName}</span>
         <span className="handle">{`@${handle}`}</span>
       </div>
 
@@ -214,14 +241,14 @@ const ProfileInfo = ({ profile }) => {
 
         {!website ? null : (
           <div className="loc-web">
-            {website ? (
+            {website && (
               <span>
                 <LinkIcon />{" "}
                 <a href={website} target="_blank" rel="noopener noreferrer">
                   {website}
                 </a>
               </span>
-            ) : null}
+            )}
           </div>
         )}
 

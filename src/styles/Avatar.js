@@ -1,10 +1,11 @@
+import React from 'react';
 import styled from "styled-components";
 
-export default styled.img`
+const AvatarWrapper = styled.div`
+  position: relative;
+  display: inline-block;
   height: ${(props) => (props.lg ? "130px" : "40px")};
   width: ${(props) => (props.lg ? "130px" : "40px")};
-  object-fit: cover;
-  border-radius: 50%;
   margin-right: 1rem;
   margin-bottom: 1rem;
 
@@ -13,3 +14,52 @@ export default styled.img`
     width: ${(props) => (props.lg ? "110px" : "40px")};
   }
 `;
+
+const StyledImage = styled.img`
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+`;
+
+const StatusDot = styled.span`
+  position: absolute;
+  bottom: 2px;
+  right: 0px;
+  width: ${(props) => (props.lg ? "16px" : "12px")};
+  height: ${(props) => (props.lg ? "16px" : "12px")};
+  border-radius: 50%;
+  background-color: ${(props) => props.isActive ? "#2ecc71" : "#95a5a6"};
+  border: 2px solid white;
+  transition: background-color 0.3s ease;
+  display: ${(props) => (props.showStatus ? "block" : "none")};
+  
+  @media screen and (max-width: 530px) {
+    width: ${(props) => (props.lg ? "14px" : "12px")};
+    height: ${(props) => (props.lg ? "14px" : "12px")};
+    bottom: 3px;
+    right: 3px;
+  }
+`;
+
+const Avatar = ({ 
+  src, 
+  alt = "avatar", 
+  lg = false, 
+  showStatus = false, 
+  isActive = false,
+  ...props 
+}) => {
+  return (
+    <AvatarWrapper lg={lg}>
+      <StyledImage src={src} alt={alt} {...props} />
+      <StatusDot 
+        lg={lg} 
+        showStatus={showStatus} 
+        isActive={isActive} 
+      />
+    </AvatarWrapper>
+  );
+};
+
+export default Avatar;

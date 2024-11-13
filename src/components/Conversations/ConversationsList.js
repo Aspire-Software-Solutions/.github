@@ -16,6 +16,7 @@ import {
 } from "firebase/firestore";
 import { getFunctions, httpsCallable } from "firebase/functions";
 import { getAuth } from "firebase/auth";
+import { getDatabase, ref, onValue } from "firebase/database";
 import Button from "../../styles/Button";
 import Loader from "../Loader";
 import { useHistory } from "react-router-dom";
@@ -23,6 +24,7 @@ import { TrashIcon, PlusIcon } from "../Icons";
 import Avatar from "../../styles/Avatar";
 import Modal from "react-modal";
 import styled from "styled-components";
+import { usePresence } from "../Auth/Presence";
 import { withTheme } from 'styled-components';
 
 const Wrapper = styled.div`
@@ -30,7 +32,7 @@ const Wrapper = styled.div`
     display: flex;
     position: relative;
     align-items: center;
-    justify-content: space-between; /* Space between to push trash icon to the right */
+    justify-content: space-between;
     padding: 10px 0;
     border-bottom: 1px solid ${(props) => props.theme.tertiaryColor};
     cursor: pointer; /* Indicate that the item is clickable */
@@ -86,7 +88,7 @@ const Wrapper = styled.div`
       transition: color 0.2s;
 
       &:hover {
-        color: red; /* Change color on hover */
+        color: red;
       }
     }
   }
@@ -109,16 +111,18 @@ const Wrapper = styled.div`
       color: ${(props) => props.theme.primaryTextColor};
 
       &:hover {
-        transform: scale(1.1); /* Slightly enlarge on hover */
+        transform: scale(1.1);
       }
     }
   }
 
-  /* Hover effect for the Plus Icon */
   .plus-icon:hover {
     fill: ${(props) => props.theme.accentColor}; 
     stroke: ${(props) => props.theme.accentColor}; 
 `;
+
+
+const PRESENCE_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
 
 /**
  * COMPOSITE PATTERN:
@@ -137,12 +141,22 @@ const ConversationsList = (props) => {
   const [loading, setLoading] = useState(true);
   const [followingUsers, setFollowingUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [userStatuses, setUserStatuses] = useState({});
+  
   const db = getFirestore();
   const auth = getAuth();
   const functions = getFunctions();
+  const rtdb = getDatabase();
   const currentUser = auth.currentUser;
   const history = useHistory();
   const { theme } = props;
+
+  // Function to check if a user should be considered online
+  const isUserActive = (lastChanged) => {
+    if (!lastChanged) return false;
+    const lastChangedTime = new Date(lastChanged).getTime();
+    return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
+  };
 
   const fetchParticipants = async (members) => {
     const participantProfiles = [];
@@ -161,8 +175,26 @@ const ConversationsList = (props) => {
               fullname: userData.fullname,
               avatarUrl: userData.avatarUrl || "/default-avatar.png",
             });
-          } else {
-            console.warn(`Profile for user ${memberId} does not exist or lacks permissions.`);
+
+            // Set up status listener for this participant
+            const statusRef = ref(rtdb, `/status/${memberId}`);
+            onValue(statusRef, (snapshot) => {
+              const data = snapshot.val();
+              if (data) {
+                setUserStatuses(current => ({
+                  ...current,
+                  [memberId]: {
+                    isActive: data.state === 'online' && isUserActive(data.last_changed),
+                    lastChanged: data.last_changed
+                  }
+                }));
+              } else {
+                setUserStatuses(current => ({
+                  ...current,
+                  [memberId]: { isActive: false }
+                }));
+              }
+            });
           }
         } catch (error) {
           console.error(`Error fetching profile for user ${memberId}:`, error);
@@ -170,8 +202,7 @@ const ConversationsList = (props) => {
       }
     }
     return participantProfiles;
-  };  
-  
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -191,13 +222,11 @@ const ConversationsList = (props) => {
             }
 
             try {
-              // Check if the conversation has messages before proceeding
-            const messagesRef = collection(db, `conversations/${conversationId}/messages`);
-            const messagesSnapshot = await getDocs(messagesRef);
-            if (messagesSnapshot.empty) {
-              // No messages in this conversation, skip it
-              return null;
-            }
+              const messagesRef = collection(db, `conversations/${conversationId}/messages`);
+              const messagesSnapshot = await getDocs(messagesRef);
+              if (messagesSnapshot.empty) {
+                return null;
+              }
 
               const participantProfiles = await fetchParticipants(conversationData.members);
               const lastMessageTimestamp = conversationData.lastMessageTimestamp;
@@ -286,13 +315,35 @@ const ConversationsList = (props) => {
       fetchFollowingUsers();
 
       return () => {
-        unsubscribe(); // Cleanup on unmount to prevent memory leaks
-        setConversations([]); // Reset conversations state on unmount
-        setLoading(true); // Reset loading state on unmount
+        unsubscribe();
+        setConversations([]);
+        setLoading(true);
       };
     }
-  }, [currentUser, db]); 
-  
+  }, [currentUser, db, rtdb]); 
+
+  // Set up status listeners for following users when modal is open
+  useEffect(() => {
+    if (!isModalOpen || !followingUsers.length) return;
+
+    const unsubscribers = followingUsers.map(user => {
+      const statusRef = ref(rtdb, `/status/${user.userId}`);
+      return onValue(statusRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setUserStatuses(current => ({
+            ...current,
+            [user.userId]: {
+              isActive: data.state === 'online' && isUserActive(data.last_changed),
+              lastChanged: data.last_changed
+            }
+          }));
+        }
+      });
+    });
+
+    return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+  }, [isModalOpen, followingUsers, rtdb]);
 
   const handleUserSelection = (user) => {
     setSelectedUsers((prevSelectedUsers) => {
@@ -320,7 +371,6 @@ const ConversationsList = (props) => {
       if (existingConversation) {
         history.push(`/conversations/${existingConversation.id}`);
       } else {
-        // Create a conversation only if permissions are valid
         const conversationRef = await addDoc(collection(db, "conversations"), {
           members,
           isGroup,
@@ -336,7 +386,7 @@ const ConversationsList = (props) => {
     } catch (error) {
       console.error("Error creating conversation:", error);
     }
-  };  
+  };
 
   const handleDeleteConversation = async (conversationId) => {
     const confirmDelete = window.confirm("Are you sure you want to remove this conversation from your list?");
@@ -344,27 +394,19 @@ const ConversationsList = (props) => {
       try {
         const conversationRef = doc(db, "conversations", conversationId);
         
-        // Remove current user from the members list
         await updateDoc(conversationRef, {
           members: arrayRemove(currentUser.uid),
         });
   
-        // Check if there are remaining members
         const updatedConversation = await getDoc(conversationRef);
         if (updatedConversation.exists() && updatedConversation.data().members.length === 0) {
           await deleteDoc(conversationRef);
-          console.log("Conversation deleted because it has no members left.");
-        } else {
-          console.log("User removed from conversation.");
         }
       } catch (error) {
         console.error("Error removing user from conversation:", error);
       }
     }
   };
-  
-  
-  
 
   if (loading) return <Loader />;
 
@@ -392,6 +434,8 @@ const ConversationsList = (props) => {
                         src={participant.avatarUrl}
                         alt={participant.handle}
                         className="avatar"
+                        showStatus
+                        isActive={userStatuses[participant.userId]?.isActive || false}
                       />
                     ))}
                   </div>
@@ -405,11 +449,11 @@ const ConversationsList = (props) => {
                       ))}
                     </div>
                     <div className="last-message">
-                    {conversation.lastMessage
-                      ? conversation.lastMessage.length > 50
-                        ? `${conversation.lastMessage.substring(0, 50)}...`
-                        : conversation.lastMessage
-                      : "No messages yet"}
+                      {conversation.lastMessage
+                        ? conversation.lastMessage.length > 50
+                          ? `${conversation.lastMessage.substring(0, 50)}...`
+                          : conversation.lastMessage
+                        : "No messages yet"}
                     </div>
                   </div>
                 </div>
@@ -460,6 +504,8 @@ const ConversationsList = (props) => {
                     src={user.avatarUrl}
                     alt={user.handle}
                     style={{ width: "40px", height: "40px", margin: "0 10px" }}
+                    showStatus
+                    isActive={userStatuses[user.userId]?.isActive || false}
                   />
                   <span>{user.firstname || user.fullname} {user.lastname} (@{user.handle})</span>
                 </li>
@@ -470,8 +516,12 @@ const ConversationsList = (props) => {
           )}
         </div>
         <div style={{ marginTop: "20px" }}>
-          <Button onClick={handleCreateConversation} disabled={selectedUsers.length === 0}>Start Conversation</Button>
-          <Button onClick={() => setIsModalOpen(false)} style={{ marginLeft: "10px" }}>Cancel</Button>
+          <Button onClick={handleCreateConversation} disabled={selectedUsers.length === 0}>
+            Start Conversation
+          </Button>
+          <Button onClick={() => setIsModalOpen(false)} style={{ marginLeft: "10px" }}>
+            Cancel
+          </Button>
         </div>
       </Modal>
     </Wrapper>
