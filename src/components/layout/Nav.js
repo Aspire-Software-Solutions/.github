@@ -80,7 +80,8 @@ const Wrapper = styled.nav`
         display: flex;
         flex-direction: column; /* Stack icons vertically */
         align-items: flex-start; /* Align icons to the left */
-        gap: 1rem; /* Space between icons */
+        gap: 1.5rem; /* Space between icons */
+        padding: 1rem;
         width: 50%; /* Full width for better spacing */
       }
 
@@ -388,34 +389,36 @@ const Nav = () => {
           <HamburgerIcon /> {/* Dropdown icon as equals sign */}
         </li>
         {isSidebarOpen && (
-            <div className="navdropdown" ref={dropdownRef}>
+            <div className="navdropdown" ref={dropdownRef} style={{margin: ".1rem"}}>
               <NavLink exact activeClassName="selected" to="/" onClick={() => setSidebarOpen(false)}>
                 <HomeIcon />
-                <span>  HOME</span>
+                <span>HOME</span>
               </NavLink>
               <NavLink activeClassName="selected" to="/explore" onClick={() => setSidebarOpen(false)}>
                 <ExploreIcon />
-                <span> EXPLORE </span>
+                <span>EXPLORE</span>
               </NavLink>
               <NavLink activeClassName="selected" to="/notifications" onClick={() => setSidebarOpen(false)}>
                 <div style={{ display: "flex", alignItems: "center" }}>
-                  <div style={{ position: "relative" }}>
+                  <div style={{ position: "relative"}}>
                   <NotificationIcon />
                   {unreadCount > 0 && <span style={badgeStyle}>{unreadCount}</span>}
-                  
                   </div>
-                  <span>..         NOTIFICATIONS</span>
+                  <span style={{ paddingLeft: unreadConversationsCount > 0 ? "20px" : "0" }}>MESSAGES</span>
                 </div>
               </NavLink>
               <NavLink activeClassName="selected" to="/conversations" onClick={() => setSidebarOpen(false)}>
+              <div style={{ display: "flex", alignItems: "center" }}>
                 <div style={{ position: "relative" }}>
-                  <ChatIcon /> <span> MESSAGES </span>
+                  <ChatIcon />
                   {unreadConversationsCount > 0 && (
-                    <span style={badgeStyle}>{unreadConversationsCount}</span>
+                    <span style={{ ...badgeStyle}}>{unreadConversationsCount}</span>
                   )}
                 </div>
-              </NavLink>                        
-            </div>
+                <span style={{ paddingLeft: unreadConversationsCount > 0 ? "20px" : "0" }}>MESSAGES</span>
+              </div>
+            </NavLink>                        
+          </div>
         )}
       </div>
 
