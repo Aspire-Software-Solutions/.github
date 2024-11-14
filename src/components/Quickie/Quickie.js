@@ -83,19 +83,16 @@ const Wrapper = styled.div`
   }
 
   @media screen and (max-width: 430px) {
-    flex-direction: column;
-
-    .username {
-      display: none;
-    }
-
     .avatar {
-      display: none;
+      width: 30px; /* Adjust for smaller screens */
+      height: 30px;
+      margin-right: 10px; /* Space between avatar and text */
     }
 
-    .quickie-info-user span.secondary {
-      padding-left: 0;
-      padding-right: 0.7rem;
+    .quickie-info-user {
+      display: flex;
+      align-items: center;
+      gap: 8px; /* Adjust space between avatar and username */
     }
   }
 `;
