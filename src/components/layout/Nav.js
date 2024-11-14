@@ -481,7 +481,7 @@ const Nav = () => {
       
 
       <div className="profile-menu">
-          <div className="profile-avatar" onClick={toggleDropdown}>
+          <div className="profile-avatar" style={{marginLeft: "25px"}} onClick={toggleDropdown}>
             <img src={userAvatar} alt="Profile" />
           </div>
           {isDropdownOpen && (
