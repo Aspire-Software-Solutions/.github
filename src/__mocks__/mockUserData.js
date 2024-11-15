@@ -25,3 +25,10 @@ export const mockPost = {
     comments: [],
   };
 
+export const mockFollow = {
+    isFollowing: false,
+    userId: "userId",
+    sm: false,
+    relative: false
+}
+

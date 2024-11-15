@@ -3,9 +3,8 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter as Router } from 'react-router-dom';
 import '@testing-library/jest-dom';
-import { toast } from 'react-toastify';
-import Login from './Login';
-import ForgotPass from './ForgotPass';
+import Login from '/Users/miafelipe/Desktop/coding/RIVAL/src/components/Auth/Login.js';
+import ForgotPass from 'src/components/Auth/ForgotPass.js';
 
 describe('Login Component', () => {
   test('renders login form with expected elements', () => {

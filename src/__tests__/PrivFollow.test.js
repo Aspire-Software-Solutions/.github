@@ -1,10 +1,10 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Profile from '../../components/Profile/Profile';
-import ProfileInfo from '../../components/Profile/ProfileInfo';
-import FollowersFollowing from '../../components/Profile/FollowersFollowing';
-import Follow from '../../components/Profile/Follow';
+import Profile from '/Users/miafelipe/Desktop/coding/RIVAL/src/components/Profile/Profile.js';
+import ProfileInfo from '/Users/miafelipe/Desktop/coding/RIVAL/src/components/Profile/ProfileInfo.js';
+import Follow from '/Users/miafelipe/Desktop/coding/RIVAL/src/components/Profile/Follow.js';
+import FollowersFollowing from '/Users/miafelipe/Desktop/coding/RIVAL/src/components/Profile/FollowersFollowing.js';
 import { getAuth, signOut } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 

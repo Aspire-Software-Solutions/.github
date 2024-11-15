@@ -1,22 +1,36 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { Router, Route, Routes } from 'react-router-dom';
 import '@testing-library/jest-dom';
-import Login from './Login';
-import Home from '../../pages/Home';
+import Login from '/Users/miafelipe/Desktop/coding/RIVAL/src/components/Auth/Login.js';
+import Home from '/Users/miafelipe/Desktop/coding/RIVAL/src/pages/Home.js';
+
 
 describe('Login Component', () => {
   test('logs in with email and password and navigates to Home', async () => {
     render(
       <Router>
-        <Routes>
-          <Route path="/" element={<Login />} />
+        <Login/>
           <Route path="/home" element={<Home />} />
-        </Routes>
       </Router>
     );
 
-    // Add more interactions if needed here, depending on what you need to test.
     expect(screen.getByText(/Home/i)).toBeInTheDocument();
+
+    // Simulate user entering email and password
+    fireEvent.change(screen.getByLabelText(/email/i), {
+      target: { value: 'test@example.com' },
+    });
+    fireEvent.change(screen.getByLabelText(/password/i), {
+      target: { value: 'password123' },
+    });
+
+    // Simulate form submission
+    fireEvent.click(screen.getByRole('button', { name: /login/i }));
+
+    // Wait for navigation to Home page
+    await waitFor(() => {
+      expect(screen.getByText(/home/i)).toBeInTheDocument();
+    });
   });
 });

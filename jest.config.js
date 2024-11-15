@@ -1,5 +1,5 @@
 module.exports = {
-    setupFilesAfterEnv: ["C:/Users/mleil/Desktop/coding/cs4800/RIVAL/src/setupTest.js"],
+    setupFilesAfterEnv: ["/Users/miafelipe/Desktop/coding/RIVAL/src/setupTest.js"],
     testEnvironment: "jsdom", // Change to "jsdom" if you previously set it to "node" for other solutions
     transform: {
       "^.+\\.[t|j]sx?$": "babel-jest",

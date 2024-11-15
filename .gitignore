@@ -224,3 +224,4 @@ capybara-*.html
 
 # Next.js
 .next/
+jest.config.js
