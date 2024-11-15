@@ -55,6 +55,7 @@
     "cross-env": "^7.0.3",
     "eslint": "^8.57.1",
     "identity-obj-proxy": "^3.0.0",
+    "jest-silent-reporter": "^0.6.0",
     "util": "^0.12.5"
   }
 }

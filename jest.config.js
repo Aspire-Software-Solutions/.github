@@ -1,4 +1,5 @@
 module.exports = {
+    silent: true,
     setupFilesAfterEnv: ["/Users/miafelipe/Desktop/coding/RIVAL/src/setupTest.js"],
     testEnvironment: "jsdom", // Change to "jsdom" if you previously set it to "node" for other solutions
     transform: {
@@ -10,5 +11,7 @@ module.exports = {
     },
     moduleDirectories: ["node_modules", "src"],
     roots: ['<rootDir>/src/__tests__'],
-      
+    reporters: [ "default",
+      ["jest-silent-reporter", { "showWarnings": true }]
+  ]
   };
