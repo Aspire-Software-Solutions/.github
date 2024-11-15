@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Logout from 'C:/Users/mleil/Desktop/coding/cs4800/RIVAL/src/components/Auth/Logout.js';
-import Login from '../../components/Auth/Login';  // Ensure Login is correctly imported
+import Login from '../components/Auth/Login';  // Ensure Login is correctly imported
 import { getAuth, signOut } from 'firebase/auth';
 import ThemeContext from '../context/ThemeContext';
 
