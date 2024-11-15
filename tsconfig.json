@@ -6,7 +6,7 @@
       "strict": true,
       "esModuleInterop": true
     },
-    "include": ["src/**/*", "tests/page.js"],
+    "include": ["src/**/*", "tests/page.js", "app.js"],
     "exclude": ["node_modules"]
   }
   

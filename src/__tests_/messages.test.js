@@ -2,6 +2,8 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import TextInputWithMentions from '/Users/miafelipe/Desktop/coding/RIVAL/src/components/Mentions/TextInputWithMentions.js';
+jest.mock('firebase/auth');
+jest.mock('firebase/firestore');
 
 describe('TextInputWithMentions Component', () => {
   test('renders without crashing', () => {
