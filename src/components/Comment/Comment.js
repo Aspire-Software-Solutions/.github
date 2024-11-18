@@ -8,6 +8,7 @@ import { Timestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { usePresence } from "../Auth/Presence";
+import { useStatus } from "../Auth/StatusProvider";
 
 const defaultAvatarUrl = "/default-avatar.png";
 
@@ -69,6 +70,7 @@ const Comment = ({ comment }) => {
   const auth = getAuth();
   const currentUser = auth.currentUser;
   const rtdb = getDatabase();
+  const { showActiveStatus } = useStatus();
 
   // Function to check if a user should be considered online
   const isUserActive = (lastChanged) => {
@@ -107,7 +109,7 @@ const Comment = ({ comment }) => {
           src={userAvatar || defaultAvatarUrl} 
           alt="avatar"
           showStatus
-          isActive={userStatus.isActive}
+          isActive={showActiveStatus}
         />
       </Link>
       <div className="comment-info">

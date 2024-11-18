@@ -7,6 +7,7 @@ import { ThemeContext } from "./context/ThemeContext";
 import Router from "./AppRouter";
 import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase Auth
 import { PresenceProvider } from "./components/Auth/Presence";
+import { StatusProvider } from "./components/Auth/StatusProvider";
 
 const App = () => {
   const { theme } = useContext(ThemeContext);
@@ -26,16 +27,18 @@ const App = () => {
 
   return (
     <PresenceProvider>
-      <StyledThemeProvider theme={theme}>
-        <GlobalStyle />
-        <ToastContainer
-          toastClassName="toast-style"
-          autoClose={2000}
-          closeButton={false}
-          draggable={false}
-        />
-        <Router />
-      </StyledThemeProvider>
+      <StatusProvider>
+        <StyledThemeProvider theme={theme}>
+          <GlobalStyle />
+          <ToastContainer
+            toastClassName="toast-style"
+            autoClose={2000}
+            closeButton={false}
+            draggable={false}
+          />
+          <Router />
+        </StyledThemeProvider>
+      </StatusProvider>
     </PresenceProvider>
   );
 };

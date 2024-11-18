@@ -4,6 +4,7 @@ import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { Link } from "react-router-dom";
 import { usePresence } from "../Auth/Presence";
+import { useStatus } from "../Auth/StatusProvider";
 
 const PRESENCE_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
 
@@ -13,6 +14,7 @@ const Message = ({ message, currentUserId }) => {
   const [userStatus, setUserStatus] = useState({ isActive: false });
   const db = getFirestore();
   const rtdb = getDatabase();
+  const { showActiveStatus } = useStatus();
 
   // Function to check if a user should be considered online
   const isUserActive = (lastChanged) => {
@@ -132,7 +134,7 @@ const Message = ({ message, currentUserId }) => {
               cursor: "pointer",
             }}
             showStatus
-            isActive={userStatus.isActive}
+            isActive={showActiveStatus}
           />
         </Link>
       )}
