@@ -93,6 +93,7 @@ const Profile = () => {
   };
 
   useEffect(() => {
+    if (!user) return;
     const fetchProfileData = async () => {
       try {
         const profileQuery = query(
@@ -213,6 +214,27 @@ const Profile = () => {
       });
     };
   }, [profileData?.following, rtdb]);
+
+  useEffect(() => {
+    if (!profileData?.userId) return; // Wait until profileData is loaded
+
+    const quickiesQuery = query(
+      collection(db, "quickies"),
+      where("userId", "==", profileData.userId),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribeQuickies = onSnapshot(quickiesQuery, (quickiesSnapshot) => {
+      const quickiesList = quickiesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setQuickies(quickiesList);
+    });
+
+    return () => unsubscribeQuickies();
+  }, [profileData?.userId, db]);
+
 
   if (loading) return <Loader />;
 
