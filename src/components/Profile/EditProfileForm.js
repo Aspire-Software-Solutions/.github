@@ -9,7 +9,6 @@ import CoverPhoto from "../../styles/CoverPhoto";
 import Avatar from "../../styles/Avatar";
 import styled, { css } from "styled-components";
 import { getFirestore, doc, updateDoc } from "firebase/firestore"; // Firestore
-import StatusToggle from "../ui/StatusToggle";
 import { getAuth } from "firebase/auth";
 
 const defaultAvatarUrl = "/default-avatar.png"; // Default avatar path
@@ -307,10 +306,6 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
           onChange={website.onChange}
         />
       </div>
-      <StatusToggle 
-        initialValue={privateAccount}
-        onToggle={handleAccountToggle}  
-      />
 
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <Button outline disabled={loading} type="submit">
