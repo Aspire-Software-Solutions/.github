@@ -9,6 +9,8 @@ import CoverPhoto from "../../styles/CoverPhoto";
 import Avatar from "../../styles/Avatar";
 import styled, { css } from "styled-components";
 import { getFirestore, doc, updateDoc } from "firebase/firestore"; // Firestore
+import StatusToggle from "../ui/StatusToggle";
+import { getAuth } from "firebase/auth";
 
 const defaultAvatarUrl = "/default-avatar.png"; // Default avatar path
 const defaultCoverPhotoUrl = "/default-cover-photo.png"; // Default cover photo path
@@ -126,13 +128,16 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
   const [avatarFile, setAvatarFile] = useState(null); // New state to hold avatar file
   const [coverPhotoFile, setCoverPhotoFile] = useState(null); // New state to hold cover photo file
   const [loading, setLoading] = useState(false); // Define loading state
-
   const firstname = useInput(profile && profile.firstname);
   const lastname = useInput(profile && profile.lastname);
   const website = useInput(profile && profile.website);
   const bio = useInput(profile && profile.bio);
   const avatarUrl = useInput(profile && profile.avatarUrl);
   const coverPhoto = useInput(profile && profile.coverPhoto);
+  const [privateAccount, setPrivateAccount] = useState(false);
+  const auth = getAuth();
+
+  const user = auth.currentUser;
 
   const handle = profile && profile.handle; // Assuming handle is a unique identifier for the profile
   const userId = profile && profile.userId; // Using userId for Firestore
@@ -215,6 +220,22 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
     setAvatar(URL.createObjectURL(file)); // Show the preview of the selected image
   };
 
+  const handleAccountToggle = async (newValue) => {
+    if( !user ) return;
+
+    try {
+      setPrivateAccount(newValue);
+      const userDocRef = doc(db, "profiles", user.uid);
+      await updateDoc(userDocRef, {
+        privateAccount: newValue
+      });
+
+    } catch (error) {
+      console.error("Error in updating account's rprivacy: ", error);
+      setPrivateAccount((prev) => !prev)
+    }
+  }
+
   return (
     <StyledForm lg onSubmit={handleEditProfile}>
       <div className="cover-photo">
@@ -286,6 +307,10 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
           onChange={website.onChange}
         />
       </div>
+      <StatusToggle 
+        initialValue={privateAccount}
+        onToggle={handleAccountToggle}  
+      />
 
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <Button outline disabled={loading} type="submit">

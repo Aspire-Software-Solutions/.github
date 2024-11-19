@@ -60,7 +60,12 @@ const StatusText = styled.span`
   font-size: 0.9rem;
 `;
 
-const StatusToggle = ({ initialValue = false, onToggle }) => {
+const StatusToggle = ({
+    initialValue = false,
+    onToggle,
+    sliderProps = {},
+    text = "Show Status",
+  }) => {
   const [isEnabled, setIsEnabled] = useState(initialValue);
 
   const handleToggle = () => {
@@ -77,9 +82,9 @@ const StatusToggle = ({ initialValue = false, onToggle }) => {
           checked={isEnabled}
           onChange={handleToggle}
         />
-        <ToggleSlider />
+        <ToggleSlider {...sliderProps} />
       </ToggleLabel>
-      <StatusText>Show Status</StatusText>
+      <StatusText>{ text }</StatusText>
     </ToggleWrapper>
   );
 };
