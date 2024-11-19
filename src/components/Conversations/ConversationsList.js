@@ -26,6 +26,7 @@ import Modal from "react-modal";
 import styled from "styled-components";
 import { usePresence } from "../Auth/Presence";
 import { withTheme } from 'styled-components';
+import { useStatus } from "../Auth/StatusProvider";
 
 const Wrapper = styled.div`
   .conversation-item {
@@ -142,6 +143,7 @@ const ConversationsList = (props) => {
   const [followingUsers, setFollowingUsers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userStatuses, setUserStatuses] = useState({});
+  const { showActiveStatus } = useStatus();
   
   const db = getFirestore();
   const auth = getAuth();
@@ -505,7 +507,7 @@ const ConversationsList = (props) => {
                     alt={user.handle}
                     style={{ width: "40px", height: "40px", margin: "0 10px" }}
                     showStatus
-                    isActive={userStatuses[user.userId]?.isActive || false}
+                    isActive={showActiveStatus || false}
                   />
                   <span>{user.firstname || user.fullname} {user.lastname} (@{user.handle})</span>
                 </li>

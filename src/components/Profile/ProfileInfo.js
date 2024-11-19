@@ -8,9 +8,10 @@ import Follow from "./Follow";
 import { LinkIcon } from "../Icons";
 import CustomResponse from "../CustomResponse";
 import { getAuth } from "firebase/auth";
-import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { usePresence } from "../Auth/Presence";
+import { useStatus } from "../Auth/StatusProvider";
 
 const defaultAvatarUrl = "/default-avatar.png";
 const defaultCoverPhotoUrl = "/default-cover-photo.png";
@@ -108,9 +109,10 @@ const ProfileInfo = ({ profile }) => {
   const history = useHistory();
   const db = getFirestore();
   const rtdb = getDatabase();
+  const { showActiveStatus } = useStatus();
 
   const isUserActive = (lastChanged) => {
-    if (!lastChanged) return false;
+    if (!lastChanged || !profile.showActiveStatus) return false;
     const lastChangedTime = new Date(lastChanged).getTime();
     return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
   };
@@ -203,7 +205,7 @@ const ProfileInfo = ({ profile }) => {
         src={avatarUrl || defaultAvatarUrl} 
         alt="profile"
         showStatus
-        isActive={userStatus.isActive}
+        isActive={showActiveStatus}
       />
 
       {isSelf ? (

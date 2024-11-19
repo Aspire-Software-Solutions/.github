@@ -15,6 +15,7 @@ import { usePresence } from "../Auth/Presence";
 import { toast } from "react-toastify";
 import Modal from "../Modal"; // Added Modal import
 import HexagonBox from "../ui/HexagonBox";
+import { useStatus } from "../Auth/StatusProvider";
 
 const Wrapper = styled.div`
   display: flex;
@@ -126,7 +127,7 @@ const Quickie = ({ quickie }) => {
   const [userAvatar, setUserAvatar] = useState(quickie.userAvatar || "/default-avatar.png");
   const [isModalOpen, setModalOpen] = useState(false);
   const [userStatus, setUserStatus] = useState({ isActive: false });
-  
+  const { showActiveStatus } = useStatus();
   const db = getFirestore();
   const auth = getAuth();
   const rtdb = getDatabase();
@@ -349,7 +350,7 @@ const Quickie = ({ quickie }) => {
           src={userAvatar} 
           alt="avatar"
           showStatus
-          isActive={userStatus.isActive}
+          isActive={showActiveStatus}
         />
       </Link>
   
