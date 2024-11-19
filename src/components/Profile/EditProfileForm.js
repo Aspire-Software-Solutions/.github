@@ -9,6 +9,7 @@ import CoverPhoto from "../../styles/CoverPhoto";
 import Avatar from "../../styles/Avatar";
 import styled, { css } from "styled-components";
 import { getFirestore, doc, updateDoc } from "firebase/firestore"; // Firestore
+import Toggle from "../ui/Toggle";
 import { getAuth } from "firebase/auth";
 
 const defaultAvatarUrl = "/default-avatar.png"; // Default avatar path
@@ -306,6 +307,18 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
           onChange={website.onChange}
         />
       </div>
+      <Toggle 
+        initialValue={privateAccount}
+        onToggle={handleAccountToggle}  
+        labelProps={{
+          height: '24px',
+          cursor: 'pointer',
+        }}
+        sliderProps={{
+          thumbTranslate: '30px',
+        }}
+        text="Set private account"
+      />
 
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <Button outline disabled={loading} type="submit">
@@ -320,3 +333,4 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
 };
 
 export default withRouter(EditProfileForm);
+
