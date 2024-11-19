@@ -13,6 +13,7 @@ import { getStorage, ref as storageRef, uploadBytesResumable, getDownloadURL } f
 import { getAuth } from "firebase/auth";
 import { getDatabase, ref as rtdbRef, onValue } from "firebase/database";
 import { usePresence } from "../Auth/Presence";
+import { useStatus } from "../Auth/StatusProvider";
 
 const defaultAvatarUrl = "/default-avatar.png";
 
@@ -76,7 +77,7 @@ const NewQuickie = () => {
   const [userAvatar, setUserAvatar] = useState(defaultAvatarUrl);
   const [userStatus, setUserStatus] = useState({ isActive: false });
   const quickie = useInput("");
-  
+  const { showActiveStatus } = useStatus();
   const db = getFirestore();
   const auth = getAuth();
   const storage = getStorage();
@@ -276,7 +277,7 @@ const NewQuickie = () => {
           src={userAvatar || defaultAvatarUrl} 
           alt="avatar"
           showStatus
-          isActive={userStatus.isActive}
+          isActive={showActiveStatus}
         />
       </div>
       <form onSubmit={handleNewQuickie}>

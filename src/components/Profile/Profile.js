@@ -43,6 +43,8 @@ const Profile = () => {
   const [profileData, setProfileData] = useState(null);
   const [quickies, setQuickies] = useState([]);
   const [followingStatuses, setFollowingStatuses] = useState({});
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isPrivate, setIsPrivate] = useState(false);
   const [currentProfileStatus, setCurrentProfileStatus] = useState({ isActive: false });
   const [loading, setLoading] = useState(true);
   
@@ -50,6 +52,7 @@ const Profile = () => {
   const db = getFirestore();
   const auth = getAuth();
   const rtdb = getDatabase();
+  const user = auth.currentUser;
 
   // Function to fetch user profile data
   const fetchUserProfile = async (userId) => {
@@ -89,63 +92,91 @@ const Profile = () => {
     return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
   };
 
-  // Handle profile data and quickies
   useEffect(() => {
-    const profileQuery = query(
-      collection(db, "profiles"), 
-      where("handle", "==", handle)
-    );
+    if (!user) return;
+    const fetchProfileData = async () => {
+      try {
+        const profileQuery = query(
+          collection(db, "profiles"),
+          where("handle", "==", handle)
+        );
 
-    const unsubscribeProfile = onSnapshot(profileQuery, (profileSnapshot) => {
-      if (profileSnapshot.empty) {
-        setProfileData(null);
-        setLoading(false);
-        return;
-      }
-
-      const profile = {
-        id: profileSnapshot.docs[0].id,
-        ...profileSnapshot.docs[0].data()
-      };
-      setProfileData(profile);
-
-      // Set up status listener for the current profile
-      const profileStatusRef = ref(rtdb, `/status/${profile.userId}`);
-      const unsubscribeStatus = onValue(profileStatusRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          setCurrentProfileStatus({
-            isActive: data.state === 'online' && isUserActive(data.last_changed),
-            lastChanged: data.last_changed
+        const snapshot = await new Promise((resolve) => {
+          const unsubscribe = onSnapshot(profileQuery, (querySnapshot) => {
+            unsubscribe();
+            resolve(querySnapshot);
           });
-        }
-      });
+        });
 
-      // Set up quickies listener
-      const quickiesQuery = query(
-        collection(db, "quickies"),
-        where("userId", "==", profile.userId),
-        orderBy("createdAt", "desc")
-      );
+        if (!snapshot.empty) {
+          const profile = {
+            id: snapshot.docs[0].id,
+            ...snapshot.docs[0].data(),
+          };
+          setProfileData(profile);
 
-      const unsubscribeQuickies = onSnapshot(quickiesQuery, (quickiesSnapshot) => {
-        const quickiesList = quickiesSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setQuickies(quickiesList);
-      });
+          // Skip privacy check if the current user is viewing their own profile
+          if (profile.userId === user.uid) {
+            setIsPrivate(false);
+            setIsFollowing(true);
+            return;
+          }
 
-      setLoading(false);
+          // Check if the account is private
+          if (profile.privateAccount) {
+            setIsPrivate(true);
 
-      return () => {
+            // Check if the current user is following this profile
+            const userDoc = await getDoc(doc(db, "profiles", user.uid));
+            if (userDoc.exists()) {
+              const userData = userDoc.data();
+              setIsFollowing(userData.following?.includes(profile.userId));
+            }
+          }
+
+          const profileStatusRef = ref(rtdb, `/status/${profile.userId}`);
+            const unsubscribeStatus = onValue(profileStatusRef, (snapshot) => {
+              const data = snapshot.val();
+              if (data) {
+                setCurrentProfileStatus({
+                  isActive: data.state === 'online' && isUserActive(data.last_changed),
+                  lastChanged: data.last_changed
+                });
+              }
+            });
+
+
+          const quickiesQuery = query(
+            collection(db, "quickies"),
+            where("userId", "==", profile.userId),
+            orderBy("createdAt", "desc")
+          );
+
+          const unsubscribeQuickies = onSnapshot(quickiesQuery, (quickiesSnapshot) => {
+              const quickiesList = quickiesSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+              }));
+              setQuickies(quickiesList);
+            });
+
+            setLoading(false);
+            return () => {
         unsubscribeQuickies();
         unsubscribeStatus();
       };
-    });
+        } else {
+          setProfileData(null);
+        }
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    return () => unsubscribeProfile();
-  }, [handle, db, rtdb]);
+    fetchProfileData();
+  }, [handle, db, user]);
 
   // Handle following statuses
   useEffect(() => {
@@ -184,7 +215,38 @@ const Profile = () => {
     };
   }, [profileData?.following, rtdb]);
 
+  useEffect(() => {
+    if (!profileData?.userId) return; // Wait until profileData is loaded
+
+    const quickiesQuery = query(
+      collection(db, "quickies"),
+      where("userId", "==", profileData.userId),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribeQuickies = onSnapshot(quickiesQuery, (quickiesSnapshot) => {
+      const quickiesList = quickiesSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setQuickies(quickiesList);
+    });
+
+    return () => unsubscribeQuickies();
+  }, [profileData?.userId, db]);
+
+
   if (loading) return <Loader />;
+
+  if (isPrivate && !isFollowing) {
+    return (
+      <Wrapper>
+          {profileData && <ProfileInfo profile={profileData} />}
+          <br/>
+          <h4>This account is private.</h4>
+      </Wrapper>
+    );
+  }
 
   return (
     <Wrapper>

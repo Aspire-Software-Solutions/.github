@@ -9,6 +9,7 @@ import {
   doc,
   getDoc,
   onSnapshot,
+  updateDoc
 } from "firebase/firestore";
 import React, { useState, useEffect, useRef } from "react";
 import {
@@ -21,6 +22,8 @@ import {
   HamburgerIcon
 } from "../Icons";
 import ToggleTheme from "../ToggleTheme";
+import Toggle from "../ui/Toggle";
+import { useStatus } from "../Auth/StatusProvider";
 
 const Wrapper = styled.nav`
   height: 4rem;
@@ -96,6 +99,10 @@ const Wrapper = styled.nav`
         flex-direction: column; /* Stack icons vertically */
         align-items: flex-start; /* Align icons to the left */
         gap: 1rem; /* Space between icons */
+
+        .toggle-switch {
+          margin: 0.5rem 0;
+        }
       }
   }
 
@@ -264,6 +271,7 @@ const Nav = () => {
   const history = useHistory(); // To use history and navigate back
   const location = useLocation(); // To get the current route
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const { showActiveStatus, setShowActiveStatus } = useStatus();
 
   // Check if the current route should show a back button
   const showBackButton =
@@ -289,30 +297,69 @@ const Nav = () => {
     fetchProfile();
   }, [user, db]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    // Create a reference to the user's profile document
+    const profileRef = doc(db, "profiles", user.uid);
+
+    // Set up real-time listener
+    const unsubscribe = onSnapshot(profileRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const profileData = docSnapshot.data();
+        setHandle(profileData.handle);
+        setUserAvatar(profileData.avatarUrl || "/default-avatar.png");
+        setIsAdmin(profileData.isAdmin || false);
+        setShowActiveStatus(profileData.showActiveStatus ?? true);
+      }
+    });
+
+    // Clean up listener on unmount
+    return () => unsubscribe();
+  }, [user, db]);
+
+  const handleStatusToggle = async (newValue) => {
+    if (!user) return;
+    
+    try {
+      console.log("Toggling status to:", newValue);
+      setShowActiveStatus(newValue);
+      const userDocRef = doc(db, "profiles", user.uid);
+      await updateDoc(userDocRef, {
+        showActiveStatus: newValue
+      });
+      console.log("Firestore updated successfully.");
+    } catch (error) {
+      console.error("Error updating status visibility:", error);
+      setShowActiveStatus((prev) => !prev);
+    }
+  };
+
   // Function to update unread notification count
   const updateUnreadCount = (count) => {
     setUnreadCount(count);
   };
 
-  // Fetch unread notifications count
   useEffect(() => {
     if (!user) return;
 
-    const notificationsRef = collection(db, "notifications");
-    const q = query(
-      notificationsRef,
-      where("userId", "==", user.uid),
-      where("isRead", "==", false) // Only unread notifications
-    );
+    const profileRef = doc(db, "profiles", user.uid);
 
-    // Listen for real-time updates
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setUnreadCount(snapshot.size); // Update unreadCount state in real-time
+    // Real-time listener
+    const unsubscribe = onSnapshot(profileRef, (docSnapshot) => {
+      if (docSnapshot.exists()) {
+        const profileData = docSnapshot.data();
+
+        // Only update state if the value has changed to avoid overwriting toggle
+        if (profileData.showActiveStatus !== showActiveStatus) {
+          setShowActiveStatus(profileData.showActiveStatus ?? true);
+        }
+      }
     });
 
-    // Clean up the listener on component unmount
     return () => unsubscribe();
-  }, [db, user]);
+  }, [user, db, showActiveStatus]);
+
 
   // NEW: Fetch unread conversations count
   useEffect(() => {
@@ -489,6 +536,10 @@ const Nav = () => {
               <NavLink to={`/${handle}`} onClick={() => setIsDropdownOpen(false)}>Profile</NavLink>
               <NavLink to="/bookmarks"onClick={() => setIsDropdownOpen(false)}>Bookmarks</NavLink>
               <ToggleTheme /> {/* Inserted theme toggle component */}
+              <Toggle 
+                initialValue={showActiveStatus}
+                onToggle={handleStatusToggle}
+              />
               <button onClick={() => auth.signOut()}>Logout</button>
             </div>
           )}

@@ -11,6 +11,7 @@ import {
 import { getDatabase, ref, onValue } from "firebase/database";
 import Loader from "../Loader";
 import Avatar from "../../styles/Avatar";
+import { useStatus } from "../Auth/StatusProvider";
 
 const Wrapper = styled.div`
   padding: 2rem;
@@ -46,6 +47,7 @@ const FollowersFollowing = () => {
   const [loading, setLoading] = useState(true);
   const db = getFirestore();
   const rtdb = getDatabase();
+  const { showActiveStatus } = useStatus();
 
   const isUserActive = (lastChanged) => {
     if (!lastChanged) return false;
@@ -133,7 +135,7 @@ const FollowersFollowing = () => {
                 src={user.avatarUrl || "/default-avatar.png"} 
                 alt={user.handle}
                 showStatus
-                isActive={userStatuses[user.userId]?.isActive || false}
+                isActive={showActiveStatus}
               />
               <div className="user-info">
                 <Link to={`/${user.handle}`}>
