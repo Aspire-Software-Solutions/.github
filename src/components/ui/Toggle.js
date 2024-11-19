@@ -60,7 +60,7 @@ const StatusText = styled.span`
   font-size: 0.9rem;
 `;
 
-const StatusToggle = ({
+const Toggle = ({
     initialValue = false,
     onToggle,
     sliderProps = {},
@@ -89,4 +89,4 @@ const StatusToggle = ({
   );
 };
 
-export default StatusToggle;
+export default Toggle;

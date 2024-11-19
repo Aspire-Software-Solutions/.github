@@ -22,7 +22,7 @@ import {
   HamburgerIcon
 } from "../Icons";
 import ToggleTheme from "../ToggleTheme";
-import StatusToggle from "../ui/StatusToggle";
+import Toggle from "../ui/Toggle";
 import { useStatus } from "../Auth/StatusProvider";
 
 const Wrapper = styled.nav`
@@ -536,7 +536,7 @@ const Nav = () => {
               <NavLink to={`/${handle}`} onClick={() => setIsDropdownOpen(false)}>Profile</NavLink>
               <NavLink to="/bookmarks"onClick={() => setIsDropdownOpen(false)}>Bookmarks</NavLink>
               <ToggleTheme /> {/* Inserted theme toggle component */}
-              <StatusToggle 
+              <Toggle 
                 initialValue={showActiveStatus}
                 onToggle={handleStatusToggle}
               />
