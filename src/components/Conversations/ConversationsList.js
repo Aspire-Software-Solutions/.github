@@ -161,50 +161,44 @@ const ConversationsList = (props) => {
   };
 
   const fetchParticipants = async (members) => {
-    const participantProfiles = [];
-    for (const memberId of members) {
-      if (memberId !== currentUser.uid) {
-        try {
-          const userRef = doc(db, "profiles", memberId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            const userData = userSnap.data();
-            participantProfiles.push({
-              userId: memberId,
-              handle: userData.handle,
-              firstname: userData.firstname,
-              lastname: userData.lastname,
-              fullname: userData.fullname,
-              avatarUrl: userData.avatarUrl || "/default-avatar.png",
-            });
+  const participantProfiles = [];
+  for (const memberId of members) {
+    if (memberId !== currentUser.uid) {
+      try {
+        const userRef = doc(db, "profiles", memberId);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const userData = userSnap.data();
+          participantProfiles.push({
+            userId: memberId,
+            handle: userData.handle,
+            firstname: userData.firstname,
+            lastname: userData.lastname,
+            fullname: userData.fullname,
+            avatarUrl: userData.avatarUrl || "/default-avatar.png",
+          });
 
-            // Set up status listener for this participant
-            const statusRef = ref(rtdb, `/status/${memberId}`);
-            onValue(statusRef, (snapshot) => {
-              const data = snapshot.val();
-              if (data) {
-                setUserStatuses(current => ({
-                  ...current,
-                  [memberId]: {
-                    isActive: data.state === 'online' && isUserActive(data.last_changed),
-                    lastChanged: data.last_changed
-                  }
-                }));
-              } else {
-                setUserStatuses(current => ({
-                  ...current,
-                  [memberId]: { isActive: false }
-                }));
-              }
-            });
-          }
-        } catch (error) {
-          console.error(`Error fetching profile for user ${memberId}:`, error);
+          // Set up status listener for this participant
+          const statusRef = ref(rtdb, `/status/${memberId}`);
+          onValue(statusRef, (snapshot) => {
+            const data = snapshot.val();
+            setUserStatuses((current) => ({
+              ...current,
+              [memberId]: {
+                isActive: data?.state === "online" && isUserActive(data.last_changed),
+                lastChanged: data?.last_changed,
+              },
+            }));
+          });
         }
+      } catch (error) {
+        console.error(`Error fetching profile for user ${memberId}:`, error);
       }
     }
-    return participantProfiles;
-  };
+  }
+  return participantProfiles;
+};
+
 
   useEffect(() => {
     if (currentUser) {
@@ -323,6 +317,7 @@ const ConversationsList = (props) => {
       };
     }
   }, [currentUser, db, rtdb]); 
+  console.log("===>", conversations);
 
   // Set up status listeners for following users when modal is open
   useEffect(() => {
@@ -336,7 +331,7 @@ const ConversationsList = (props) => {
           setUserStatuses(current => ({
             ...current,
             [user.userId]: {
-              isActive: data.state === 'online' && isUserActive(data.last_changed),
+              isActive: data.state === 'online',
               lastChanged: data.last_changed
             }
           }));
@@ -369,7 +364,6 @@ const ConversationsList = (props) => {
         conversation.members.length === members.length &&
         members.every((member) => conversation.members.includes(member))
       );
-  
       if (existingConversation) {
         history.push(`/conversations/${existingConversation.id}`);
       } else {
@@ -506,8 +500,8 @@ const ConversationsList = (props) => {
                     src={user.avatarUrl}
                     alt={user.handle}
                     style={{ width: "40px", height: "40px", margin: "0 10px" }}
-                    showStatus
-                    isActive={showActiveStatus || false}
+                    showStatus={showActiveStatus}
+                    isActive={userStatuses[user.userId]?.isActive || false}
                   />
                   <span>{user.firstname || user.fullname} {user.lastname} (@{user.handle})</span>
                 </li>

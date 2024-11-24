@@ -125,8 +125,11 @@ const ProfileInfo = ({ profile }) => {
     const unsubscribe = onValue(statusRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        console.log("data ==>", data);
+        console.log("====>user in info: ",profile.fullname);
+        console.log("====>status in info: ",userStatus.isActive);
         setUserStatus({
-          isActive: data.state === 'online' && isUserActive(data.last_changed),
+          isActive: data.state === 'online',
           lastChanged: data.last_changed
         });
       } else {
@@ -204,8 +207,8 @@ const ProfileInfo = ({ profile }) => {
         lg 
         src={avatarUrl || defaultAvatarUrl} 
         alt="profile"
-        showStatus
-        isActive={showActiveStatus}
+        showStatus={showActiveStatus}
+        isActive={userStatus.isActive}
       />
 
       {isSelf ? (

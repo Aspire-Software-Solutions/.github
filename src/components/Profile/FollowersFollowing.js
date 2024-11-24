@@ -109,7 +109,7 @@ const FollowersFollowing = () => {
           setUserStatuses(current => ({
             ...current,
             [user.userId]: {
-              isActive: data.state === 'online' && isUserActive(data.last_changed),
+              isActive: data.state === 'online',
               lastChanged: data.last_changed
             }
           }));
@@ -134,8 +134,8 @@ const FollowersFollowing = () => {
               <Avatar 
                 src={user.avatarUrl || "/default-avatar.png"} 
                 alt={user.handle}
-                showStatus
-                isActive={showActiveStatus}
+                showStatus={user.showActiveStatus || true}
+                isActive={userStatuses[user.userId]?.isActive || false}
               />
               <div className="user-info">
                 <Link to={`/${user.handle}`}>

@@ -3,7 +3,6 @@ import Avatar from "../../styles/Avatar";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { Link } from "react-router-dom";
-import { usePresence } from "../Auth/Presence";
 import { useStatus } from "../Auth/StatusProvider";
 
 const PRESENCE_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
@@ -44,8 +43,8 @@ const Message = ({ message, currentUserId }) => {
       const data = snapshot.val();
       if (data) {
         setUserStatus({
-          isActive: data.state === 'online' && isUserActive(data.last_changed),
-          lastChanged: data.last_changed
+          isActive: data.state === "online" && isUserActive(data.last_changed),
+          lastChanged: data.last_changed,
         });
       } else {
         setUserStatus({ isActive: false });
@@ -75,7 +74,7 @@ const Message = ({ message, currentUserId }) => {
               marginRight: "10px",
               cursor: "pointer",
             }}
-            showStatus
+            showStatus={showActiveStatus}
             isActive={userStatus.isActive}
           />
         </Link>
@@ -133,8 +132,8 @@ const Message = ({ message, currentUserId }) => {
               marginLeft: "10px",
               cursor: "pointer",
             }}
-            showStatus
-            isActive={showActiveStatus}
+            showStatus={showActiveStatus}
+            isActive={userStatus.isActive}
           />
         </Link>
       )}

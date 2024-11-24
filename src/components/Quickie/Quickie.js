@@ -148,8 +148,10 @@ const Quickie = ({ quickie }) => {
     const unsubscribe = onValue(statusRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
+        console.log("====>user in quickie: ",quickie.userName);
+        console.log("====>status in quickie: ",userStatus);
         setUserStatus({
-          isActive: data.state === 'online' && isUserActive(data.last_changed),
+          isActive: data.state === 'online',
           lastChanged: data.last_changed
         });
       } else {
@@ -349,8 +351,8 @@ const Quickie = ({ quickie }) => {
           className="avatar" 
           src={userAvatar} 
           alt="avatar"
-          showStatus
-          isActive={showActiveStatus}
+          showStatus={showActiveStatus}
+          isActive={userStatus.isActive}
         />
       </Link>
   

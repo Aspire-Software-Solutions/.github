@@ -139,7 +139,7 @@ const Profile = () => {
               const data = snapshot.val();
               if (data) {
                 setCurrentProfileStatus({
-                  isActive: data.state === 'online' && isUserActive(data.last_changed),
+                  isActive: data.state === 'online',
                   lastChanged: data.last_changed
                 });
               }
@@ -194,7 +194,7 @@ const Profile = () => {
               ...current,
               [userId]: {
                 id: userId,
-                isActive: data.state === 'online' && isUserActive(data.last_changed),
+                isActive: data.state === 'online' ,
                 name: userProfile ? userProfile.fullname : "Unknown User",
                 firstname: userProfile?.firstname || "",
                 lastname: userProfile?.lastname || "",

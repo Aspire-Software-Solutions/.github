@@ -88,7 +88,7 @@ const Comment = ({ comment }) => {
       const data = snapshot.val();
       if (data) {
         setUserStatus({
-          isActive: data.state === 'online' && isUserActive(data.last_changed),
+          isActive: data.state === 'online',
           lastChanged: data.last_changed
         });
       } else {
@@ -109,7 +109,7 @@ const Comment = ({ comment }) => {
           src={userAvatar || defaultAvatarUrl} 
           alt="avatar"
           showStatus
-          isActive={showActiveStatus}
+          isActive={userStatus}
         />
       </Link>
       <div className="comment-info">

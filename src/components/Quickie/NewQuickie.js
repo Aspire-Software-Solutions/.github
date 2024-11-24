@@ -82,6 +82,7 @@ const NewQuickie = () => {
   const auth = getAuth();
   const storage = getStorage();
   const rtdb = getDatabase();
+  const user = auth.currentUser;
 
   const isUserActive = (lastChanged) => {
     if (!lastChanged) return false;
@@ -91,7 +92,6 @@ const NewQuickie = () => {
 
   // Set up real-time status listener
   useEffect(() => {
-    const user = auth.currentUser;
     if (!user) return;
 
     const statusRef = rtdbRef(rtdb, `/status/${user.uid}`);
@@ -99,7 +99,7 @@ const NewQuickie = () => {
       const data = snapshot.val();
       if (data) {
         setUserStatus({
-          isActive: data.state === 'online' && isUserActive(data.last_changed),
+          isActive: data.state === 'online',
           lastChanged: data.last_changed
         });
       } else {
@@ -276,8 +276,8 @@ const NewQuickie = () => {
         <Avatar 
           src={userAvatar || defaultAvatarUrl} 
           alt="avatar"
-          showStatus
-          isActive={showActiveStatus}
+          showStatus={user.showActiveStatus}
+          isActive={userStatus}
         />
       </div>
       <form onSubmit={handleNewQuickie}>
