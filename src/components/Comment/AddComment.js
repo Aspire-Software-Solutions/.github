@@ -15,8 +15,9 @@ import {
   increment,
   collection,
   addDoc,
-} from "firebase/firestore"; // Firebase Firestore imports
-import { getAuth } from "firebase/auth"; // Firebase Auth import
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { getDatabase, ref, onValue } from "firebase/database";
 
 const defaultAvatarUrl = "/default-avatar.png";
 
@@ -56,26 +57,25 @@ const Wrapper = styled.div`
   }
 `;
 
-/**
- * FACTORY PATTERN:
- * ----------------
- * 
- * This pattern encapsulates the logic for creating
- * a new comment object with predefined properties.
- * 
- * By using a factory, we ensure all comments created
- * in `AddComment.js` follow the same structure, making
- * it easier to maintain and add new properties if needed.
- */
+const PRESENCE_TIMEOUT = 2 * 60 * 1000;
+
 const AddComment = ({ id }) => {
   const comment = useInput("");
-  const [userAvatar, setUserAvatar] = useState(defaultAvatarUrl); // State to track avatar
-  const db = getFirestore(); // Initialize Firestore
-  const auth = getAuth(); // Get Firebase Auth instance
+  const [userAvatar, setUserAvatar] = useState(defaultAvatarUrl);
+  const [showStatus, setShowStatus] = useState(true);
+  const [userStatus, setUserStatus] = useState({ isActive: false });
+  const db = getFirestore();
+  const auth = getAuth();
+  const rtdb = getDatabase();
 
-  // Fetch user's avatar from Firestore on mount
+  const isUserActive = (lastChanged, showActiveStatus) => {
+    if (!lastChanged || !showActiveStatus) return false;
+    const lastChangedTime = new Date(lastChanged).getTime();
+    return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
+  };
+
   useEffect(() => {
-    const fetchUserAvatar = async () => {
+    const fetchUserProfile = async () => {
       const user = auth.currentUser;
       if (user) {
         const userRef = doc(db, "profiles", user.uid);
@@ -83,12 +83,33 @@ const AddComment = ({ id }) => {
 
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          setUserAvatar(userData.avatarUrl || defaultAvatarUrl); // Ensure avatarUrl is used
+          setUserAvatar(userData.avatarUrl || defaultAvatarUrl);
+          setShowStatus(userData.showActiveStatus !== undefined ? userData.showActiveStatus : true);
         }
       }
     };
-    fetchUserAvatar();
+    fetchUserProfile();
   }, [auth, db]);
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const statusRef = ref(rtdb, `/status/${user.uid}`);
+    const unsubscribe = onValue(statusRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setUserStatus({
+          isActive: data.state === "online" && isUserActive(data.last_changed, showStatus),
+          lastChanged: data.last_changed,
+        });
+      } else {
+        setUserStatus({ isActive: false });
+      }
+    });
+
+    return () => unsubscribe();
+  }, [auth, rtdb, showStatus]);
 
   const handleAddComment = async (e) => {
     e.preventDefault();
@@ -101,47 +122,40 @@ const AddComment = ({ id }) => {
         return toast.error("You need to be logged in to reply.");
       }
 
-      // Fetch the user's handle from the 'profiles' collection
       const userRef = doc(db, "profiles", user.uid);
       const userSnap = await getDoc(userRef);
       if (!userSnap.exists()) {
         return toast.error("User profile not found.");
       }
-      const { handle } = userSnap.data(); // Get the user's handle
+      const { handle } = userSnap.data();
 
-      // Fetch the quickie document to get the owner's userId
       const quickieRef = doc(db, "quickies", id);
       const quickieSnap = await getDoc(quickieRef);
-
-      // Ensure the quickie exists before proceeding
       if (!quickieSnap.exists()) {
         return toast.error("Quickie not found.");
       }
 
-      const postOwnerId = quickieSnap.data().userId; // Post owner's ID
+      const postOwnerId = quickieSnap.data().userId;
 
-      // Add the comment to the quickie document
       await updateDoc(quickieRef, {
         comments: arrayUnion({
           text: comment.value,
           userId: user.uid,
           userName: user.displayName,
-          userAvatar: userAvatar, // Use the updated avatar
-          handle: handle, // Include the user's handle in the comment
+          userAvatar,
+          handle,
           createdAt: new Date(),
         }),
-        commentsCount: increment(1), // Increment the comment count
+        commentsCount: increment(1),
       });
 
-      // **Only create a notification if the commenter is not the post owner**
       if (user.uid !== postOwnerId) {
-        // Create a notification for the post owner
         const notificationsRef = collection(db, "notifications");
         await addDoc(notificationsRef, {
           type: "comment",
-          quickieId: id, // The ID of the quickie that was commented on
-          fromUserId: user.uid, // User who commented
-          userId: postOwnerId, // Notify the post owner
+          quickieId: id,
+          fromUserId: user.uid,
+          userId: postOwnerId,
           createdAt: new Date(),
           isRead: false,
         });
@@ -153,7 +167,7 @@ const AddComment = ({ id }) => {
       return displayError(err);
     }
 
-    comment.setValue(""); // Clear the input after successful submission
+    comment.setValue("");
   };
 
   const user = auth.currentUser;
@@ -164,7 +178,12 @@ const AddComment = ({ id }) => {
 
   return (
     <Wrapper>
-      <Avatar src={userAvatar} alt="avatar" /> {/* Use Firestore Avatar */}
+      <Avatar
+        src={userAvatar}
+        alt="avatar"
+        showStatus={showStatus}
+        isActive={userStatus.isActive}
+      />
 
       <form onSubmit={handleAddComment}>
         <div className="add-comment">

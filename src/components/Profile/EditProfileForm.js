@@ -136,6 +136,9 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
   const coverPhoto = useInput(profile && profile.coverPhoto);
   const [privateAccount, setPrivateAccount] = useState(false);
   const auth = getAuth();
+  const [showActiveStatus, setShowActiveStatus] = useState(
+    profile?.showActiveStatus !== undefined ? profile.showActiveStatus : true
+  );
 
   const user = auth.currentUser;
 
@@ -236,6 +239,21 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
     }
   }
 
+  const handleStatusToggle = async (newValue) => {
+    if (!user) return;
+
+    try {
+      setShowActiveStatus(newValue);
+      const userDocRef = doc(db, "profiles", user.uid);
+      await updateDoc(userDocRef, {
+        showActiveStatus: newValue
+      });
+    } catch (error) {
+      console.error("Error updating active status preference: ", error);
+      setShowActiveStatus((prev) => !prev);
+    }
+  };
+
   return (
     <StyledForm lg onSubmit={handleEditProfile}>
       <div className="cover-photo">
@@ -259,6 +277,7 @@ const EditProfileForm = ({ profile, history, onAvatarUpdate }) => {
             lg
             src={avatarState || avatarUrl.value || defaultAvatarUrl}
             alt="avatar"
+            showStatus={showActiveStatus}
           />
         </label>
         <input

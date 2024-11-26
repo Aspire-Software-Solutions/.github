@@ -144,6 +144,7 @@ const ConversationsList = (props) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [userStatuses, setUserStatuses] = useState({});
   const { showActiveStatus } = useStatus();
+   const [followingUserStatuses, setFollowingUserStatuses] = useState({});
   
   const db = getFirestore();
   const auth = getAuth();
@@ -160,163 +161,164 @@ const ConversationsList = (props) => {
     return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
   };
 
-  const fetchParticipants = async (members) => {
-  const participantProfiles = [];
-  for (const memberId of members) {
-    if (memberId !== currentUser.uid) {
-      try {
-        const userRef = doc(db, "profiles", memberId);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
-          participantProfiles.push({
-            userId: memberId,
-            handle: userData.handle,
-            firstname: userData.firstname,
-            lastname: userData.lastname,
-            fullname: userData.fullname,
-            avatarUrl: userData.avatarUrl || "/default-avatar.png",
-          });
 
-          // Set up status listener for this participant
-          const statusRef = ref(rtdb, `/status/${memberId}`);
-          onValue(statusRef, (snapshot) => {
-            const data = snapshot.val();
-            setUserStatuses((current) => ({
-              ...current,
-              [memberId]: {
-                isActive: data?.state === "online" && isUserActive(data.last_changed),
-                lastChanged: data?.last_changed,
-              },
-            }));
-          });
+  const fetchParticipants = async (members) => {
+    const participantProfiles = [];
+    for (const memberId of members) {
+      if (memberId !== currentUser.uid) {
+        try {
+          const userRef = doc(db, "profiles", memberId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            const showActiveStatus = userData.showActiveStatus !== undefined ? userData.showActiveStatus : true;
+
+            participantProfiles.push({
+              userId: memberId,
+              handle: userData.handle,
+              firstname: userData.firstname,
+              lastname: userData.lastname,
+              fullname: userData.fullname,
+              avatarUrl: userData.avatarUrl || "/default-avatar.png",
+              showActiveStatus,
+            });
+
+            // Set up status listener for this participant
+            const statusRef = ref(rtdb, `/status/${memberId}`);
+            onValue(statusRef, (snapshot) => {
+              const data = snapshot.val();
+              const isActive = data?.state === "online";
+
+              setUserStatuses((current) => ({
+                ...current,
+                [memberId]: {
+                  isActive,
+                  lastChanged: data?.last_changed,
+                },
+              }));
+            });
+          }
+        } catch (error) {
+          console.error(`Error fetching profile for user ${memberId}:`, error);
         }
-      } catch (error) {
-        console.error(`Error fetching profile for user ${memberId}:`, error);
       }
     }
-  }
-  return participantProfiles;
-};
+    return participantProfiles;
+  };
+
 
 
   useEffect(() => {
-    if (currentUser) {
-      const conversationsRef = collection(db, "conversations");
-      const q = query(conversationsRef, where("members", "array-contains", currentUser.uid));
+    if (!currentUser) return;
 
-      const unsubscribe = onSnapshot(
-        q,
-        async (querySnapshot) => {
-          const conversationsPromises = querySnapshot.docs.map(async (docSnap) => {
-            const conversationId = docSnap.id;
-            const conversationData = docSnap.data();
-            
-            if (!conversationData) {
-              console.warn(`Conversation ${conversationId} data is undefined.`);
+    const conversationsRef = collection(db, "conversations");
+    const q = query(conversationsRef, where("members", "array-contains", currentUser.uid));
+
+    const unsubscribe = onSnapshot(
+      q,
+      async (querySnapshot) => {
+        const conversationsPromises = querySnapshot.docs.map(async (docSnap) => {
+          const conversationId = docSnap.id;
+          const conversationData = docSnap.data();
+          
+          if (!conversationData) {
+            console.warn(`Conversation ${conversationId} data is undefined.`);
+            return null;
+          }
+
+          try {
+            const messagesRef = collection(db, `conversations/${conversationId}/messages`);
+            const messagesSnapshot = await getDocs(messagesRef);
+            if (messagesSnapshot.empty) {
               return null;
             }
 
-            try {
-              const messagesRef = collection(db, `conversations/${conversationId}/messages`);
-              const messagesSnapshot = await getDocs(messagesRef);
-              if (messagesSnapshot.empty) {
-                return null;
+            const participantProfiles = await fetchParticipants(conversationData.members);
+            const lastMessageTimestamp = conversationData.lastMessageTimestamp;
+            const lastReadTimestamp = conversationData.lastRead?.[currentUser.uid];
+            const lastMessageSenderId = conversationData.lastMessageSenderId;
+
+            let hasUnreadMessages = false;
+
+            if (lastMessageTimestamp?.toMillis) {
+              if (
+                lastMessageSenderId !== currentUser.uid &&
+                (!lastReadTimestamp || (lastReadTimestamp?.toMillis && lastReadTimestamp.toMillis() < lastMessageTimestamp.toMillis()))
+              ) {
+                hasUnreadMessages = true;
               }
+            }
 
-              const participantProfiles = await fetchParticipants(conversationData.members);
-              const lastMessageTimestamp = conversationData.lastMessageTimestamp;
-              const lastReadTimestamp = conversationData.lastRead?.[currentUser.uid];
-              const lastMessageSenderId = conversationData.lastMessageSenderId;
+            return {
+              id: conversationId,
+              ...conversationData,
+              participantProfiles,
+              hasUnreadMessages,
+            };
+          } catch (error) {
+            console.error("Error processing conversation:", error);
+            return null;
+          }
+        });
 
-              let hasUnreadMessages = false;
+        const conversationsArray = await Promise.all(conversationsPromises);
+        setConversations(conversationsArray.filter(Boolean));
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Error listening to conversations:", error);
+        setConversations([]);
+        setLoading(false);
+      }
+    );
 
-              if (lastMessageTimestamp?.toMillis) {
-                if (
-                  lastMessageSenderId !== currentUser.uid &&
-                  (!lastReadTimestamp || (lastReadTimestamp?.toMillis && lastReadTimestamp.toMillis() < lastMessageTimestamp.toMillis()))
-                ) {
-                  hasUnreadMessages = true;
-                }
+    // Fetch following users
+    const fetchFollowingUsers = async () => {
+      try {
+        const userProfileRef = doc(db, "profiles", currentUser.uid);
+        const userProfileSnap = await getDoc(userProfileRef);
+
+        if (userProfileSnap.exists()) {
+          const userProfileData = userProfileSnap.data();
+          const followingIds = Array.isArray(userProfileData.following) ? userProfileData.following : [];
+
+          if (followingIds.length > 0) {
+            const followingProfilesPromises = followingIds.map(async (followingId) => {
+              const followingUserRef = doc(db, "profiles", followingId);
+              const followingUserSnap = await getDoc(followingUserRef);
+
+              if (followingUserSnap.exists()) {
+                const followingUserData = followingUserSnap.data();
+                return {
+                  userId: followingId,
+                  handle: followingUserData.handle,
+                  firstname: followingUserData.firstname,
+                  lastname: followingUserData.lastname,
+                  fullname: followingUserData.fullname,
+                  avatarUrl: followingUserData.avatarUrl || "/default-avatar.png",
+                  showActiveStatus: followingUserData.showActiveStatus !== undefined ? 
+                    followingUserData.showActiveStatus : true,
+                };
               }
-
-              return {
-                id: conversationId,
-                ...conversationData,
-                participantProfiles,
-                hasUnreadMessages,
-              };
-            } catch (error) {
-              console.error("Error processing conversation:", error);
               return null;
-            }
-          });
+            });
 
-          const conversationsArray = await Promise.all(conversationsPromises);
-          setConversations(conversationsArray.filter(Boolean));
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error listening to conversations:", error);
-          setConversations([]);
-          setLoading(false);
-        }
-      );
-
-      const fetchFollowingUsers = async () => {
-        try {
-          const userProfileRef = doc(db, "profiles", currentUser.uid);
-          const userProfileSnap = await getDoc(userProfileRef);
-
-          if (userProfileSnap.exists()) {
-            const userProfileData = userProfileSnap.data();
-            const followingIds = Array.isArray(userProfileData.following) ? userProfileData.following : [];
-
-            if (followingIds.length > 0) {
-              const followingProfilesPromises = followingIds.map(async (followingId) => {
-                const followingUserRef = doc(db, "profiles", followingId);
-                const followingUserSnap = await getDoc(followingUserRef);
-
-                if (followingUserSnap.exists()) {
-                  const followingUserData = followingUserSnap.data();
-                  return {
-                    userId: followingId,
-                    handle: followingUserData.handle,
-                    firstname: followingUserData.firstname,
-                    lastname: followingUserData.lastname,
-                    fullname: followingUserData.fullname,
-                    avatarUrl: followingUserData.avatarUrl || "/default-avatar.png",
-                  };
-                } else {
-                  console.warn(`Profile for user ${followingId} does not exist.`);
-                  return null;
-                }
-              });
-
-              const followingProfiles = await Promise.all(followingProfilesPromises);
-              setFollowingUsers(followingProfiles.filter(Boolean));
-            } else {
-              setFollowingUsers([]);
-            }
+            const followingProfiles = await Promise.all(followingProfilesPromises);
+            setFollowingUsers(followingProfiles.filter(Boolean));
           } else {
-            console.warn(`User profile for ${currentUser.uid} does not exist.`);
             setFollowingUsers([]);
           }
-        } catch (error) {
-          console.error("Error fetching following users:", error);
-          setFollowingUsers([]);
         }
-      };
+      } catch (error) {
+        console.error("Error fetching following users:", error);
+        setFollowingUsers([]);
+      }
+    };
 
-      fetchFollowingUsers();
+    fetchFollowingUsers();
+    return () => unsubscribe();
+  }, [currentUser, db, rtdb]);
 
-      return () => {
-        unsubscribe();
-        setConversations([]);
-        setLoading(true);
-      };
-    }
-  }, [currentUser, db, rtdb]); 
   console.log("===>", conversations);
 
   // Set up status listeners for following users when modal is open
@@ -324,14 +326,18 @@ const ConversationsList = (props) => {
     if (!isModalOpen || !followingUsers.length) return;
 
     const unsubscribers = followingUsers.map(user => {
+      if (!user.showActiveStatus) return null;
+
       const statusRef = ref(rtdb, `/status/${user.userId}`);
       return onValue(statusRef, (snapshot) => {
         const data = snapshot.val();
         if (data) {
-          setUserStatuses(current => ({
+          const isActive = data.state === 'online';
+
+          setFollowingUserStatuses(current => ({
             ...current,
             [user.userId]: {
-              isActive: data.state === 'online',
+              isActive,
               lastChanged: data.last_changed
             }
           }));
@@ -339,7 +345,7 @@ const ConversationsList = (props) => {
       });
     });
 
-    return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+    return () => unsubscribers.forEach(unsubscribe => unsubscribe && unsubscribe());
   }, [isModalOpen, followingUsers, rtdb]);
 
   const handleUserSelection = (user) => {
@@ -430,7 +436,7 @@ const ConversationsList = (props) => {
                         src={participant.avatarUrl}
                         alt={participant.handle}
                         className="avatar"
-                        showStatus
+                        showStatus={participant.showActiveStatus}
                         isActive={userStatuses[participant.userId]?.isActive || false}
                       />
                     ))}
@@ -500,8 +506,8 @@ const ConversationsList = (props) => {
                     src={user.avatarUrl}
                     alt={user.handle}
                     style={{ width: "40px", height: "40px", margin: "0 10px" }}
-                    showStatus={showActiveStatus}
-                    isActive={userStatuses[user.userId]?.isActive || false}
+                    showStatus={user.showActiveStatus}
+                    isActive={followingUserStatuses[user.userId]?.isActive || false}
                   />
                   <span>{user.firstname || user.fullname} {user.lastname} (@{user.handle})</span>
                 </li>

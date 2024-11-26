@@ -7,6 +7,7 @@ import DeleteComment from "./DeleteComment";
 import { Timestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getDatabase, ref, onValue } from "firebase/database";
+import { getFirestore, getDoc, doc } from "firebase/firestore";
 import { usePresence } from "../Auth/Presence";
 import { useStatus } from "../Auth/StatusProvider";
 
@@ -67,37 +68,49 @@ const PRESENCE_TIMEOUT = 2 * 60 * 1000;
 const Comment = ({ comment }) => {
   const { text, userId, userName, userAvatar, createdAt, handle } = comment;
   const [userStatus, setUserStatus] = useState({ isActive: false });
+  const [userShowActiveStatus, setUserShowActiveStatus] = useState(true);
   const auth = getAuth();
   const currentUser = auth.currentUser;
   const rtdb = getDatabase();
-  const { showActiveStatus } = useStatus();
+  const db = getFirestore();
 
-  // Function to check if a user should be considered online
   const isUserActive = (lastChanged) => {
     if (!lastChanged) return false;
     const lastChangedTime = new Date(lastChanged).getTime();
     return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
   };
 
-  // Effect for subscribing to user's status
   useEffect(() => {
     if (!userId) return;
 
-    const statusRef = ref(rtdb, `/status/${userId}`);
-    const unsubscribe = onValue(statusRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        setUserStatus({
-          isActive: data.state === 'online',
-          lastChanged: data.last_changed
-        });
-      } else {
-        setUserStatus({ isActive: false });
-      }
-    });
+    const fetchUserStatus = async () => {
+      try {
+        // Fetch user's showActiveStatus preference
+        const profileRef = doc(db, "profiles", userId);
+        const profileSnap = await getDoc(profileRef);
 
-    return () => unsubscribe();
-  }, [userId, rtdb]);
+        if (profileSnap.exists()) {
+          const profileData = profileSnap.data();
+          const showActiveStatusFromDb = profileData.showActiveStatus !== undefined ? profileData.showActiveStatus : true;
+          setUserShowActiveStatus(showActiveStatusFromDb);
+
+          // Set up real-time listener for online status
+          const statusRef = ref(rtdb, `/status/${userId}`);
+          const unsubscribe = onValue(statusRef, (snapshot) => {
+            const data = snapshot.val();
+            const isActive = data?.state === "online" && showActiveStatusFromDb;
+            setUserStatus({ isActive, lastChanged: data?.last_changed });
+          });
+
+          return () => unsubscribe();
+        }
+      } catch (error) {
+        console.error("Error fetching user status:", error);
+      }
+    };
+
+    fetchUserStatus();
+  }, [userId, db, rtdb]);
 
   const commentDate = createdAt instanceof Timestamp ? createdAt.toDate() : createdAt;
 
@@ -108,8 +121,8 @@ const Comment = ({ comment }) => {
           className="avatar" 
           src={userAvatar || defaultAvatarUrl} 
           alt="avatar"
-          showStatus
-          isActive={userStatus}
+          showStatus={userShowActiveStatus}
+          isActive={userStatus.isActive}
         />
       </Link>
       <div className="comment-info">

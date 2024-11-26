@@ -8,7 +8,7 @@ import Follow from "./Follow";
 import { LinkIcon } from "../Icons";
 import CustomResponse from "../CustomResponse";
 import { getAuth } from "firebase/auth";
-import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { getFirestore, collection, addDoc, query, where, getDocs, serverTimestamp, deleteDoc, doc, updateDoc, getDoc } from "firebase/firestore";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { usePresence } from "../Auth/Presence";
 import { useStatus } from "../Auth/StatusProvider";
@@ -109,40 +109,52 @@ const ProfileInfo = ({ profile }) => {
   const history = useHistory();
   const db = getFirestore();
   const rtdb = getDatabase();
-  const { showActiveStatus } = useStatus();
+  const { showActiveStatus: globalShowActiveStatus } = useStatus();
 
-  const isUserActive = (lastChanged) => {
-    if (!lastChanged || !profile.showActiveStatus) return false;
+  const isUserActive = (lastChanged, showActiveStatus) => {
+    if (!lastChanged || !showActiveStatus) return false;
     const lastChangedTime = new Date(lastChanged).getTime();
     return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
   };
 
-  // Set up real-time status listener for profile user
+  // Real-time status listener and Firestore `showActiveStatus` check
   useEffect(() => {
     if (!profile?.userId) return;
 
-    const statusRef = ref(rtdb, `/status/${profile.userId}`);
-    const unsubscribe = onValue(statusRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        console.log("data ==>", data);
-        console.log("====>user in info: ",profile.fullname);
-        console.log("====>status in info: ",userStatus.isActive);
-        setUserStatus({
-          isActive: data.state === 'online',
-          lastChanged: data.last_changed
-        });
-      } else {
-        setUserStatus({ isActive: false });
-      }
-    });
+    const fetchUserStatus = async () => {
+      // Fetch the `showActiveStatus` field from Firestore
+      const profileRef = doc(db, "profiles", profile.userId);
+      const profileSnap = await getDoc(profileRef);
 
-    return () => unsubscribe();
-  }, [profile?.userId, rtdb]);
+      let userShowActiveStatus = true; // Default to true
+      if (profileSnap.exists()) {
+        const profileData = profileSnap.data();
+        userShowActiveStatus = profileData.showActiveStatus !== undefined ? profileData.showActiveStatus : true;
+      }
+
+      // Set up real-time database listener
+      const statusRef = ref(rtdb, `/status/${profile.userId}`);
+      const unsubscribe = onValue(statusRef, (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+          setUserStatus({
+            isActive: data.state === "online" && isUserActive(data.last_changed, userShowActiveStatus),
+            lastChanged: data.last_changed,
+          });
+        } else {
+          setUserStatus({ isActive: false });
+        }
+      });
+
+      return () => unsubscribe();
+    };
+
+    fetchUserStatus();
+  }, [profile?.userId, db, rtdb]);
 
   if (!profile) {
     return (
-      <CustomResponse text="Oops, you are trying to visit a profile which seems to not exist. Make sure the profile handle exists" />
+      <CustomResponse text="Oops, you are trying to visit a profile which seems to not exist. Make sure the profile handle exists." />
     );
   }
 
@@ -164,7 +176,7 @@ const ProfileInfo = ({ profile }) => {
 
   const displayName = firstname && lastname ? `${firstname} ${lastname}` : fullname || "No name provided";
 
-  const handleStartConversation = async (userId, userHandle) => {
+  const handleStartConversation = async (userId) => {
     if (!currentUser) return;
 
     try {
@@ -187,7 +199,7 @@ const ProfileInfo = ({ profile }) => {
           isGroup: false,
           lastMessage: "",
           lastMessageAt: serverTimestamp(),
-          readBy: [currentUser.uid]
+          readBy: [currentUser.uid],
         });
 
         conversationId = newConversation.id;
@@ -207,7 +219,7 @@ const ProfileInfo = ({ profile }) => {
         lg 
         src={avatarUrl || defaultAvatarUrl} 
         alt="profile"
-        showStatus={showActiveStatus}
+        showStatus={globalShowActiveStatus}
         isActive={userStatus.isActive}
       />
 
@@ -229,7 +241,7 @@ const ProfileInfo = ({ profile }) => {
             relative
             outline
             className="action-btn"
-            onClick={() => handleStartConversation(profile.userId, profile.handle)}
+            onClick={() => handleStartConversation(profile.userId)}
           >
             Message
           </Button>

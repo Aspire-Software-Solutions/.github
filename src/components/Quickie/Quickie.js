@@ -13,7 +13,7 @@ import { getAuth } from "firebase/auth";
 import { getDatabase, ref, onValue } from "firebase/database";
 import { usePresence } from "../Auth/Presence";
 import { toast } from "react-toastify";
-import Modal from "../Modal"; // Added Modal import
+import Modal from "../Modal";
 import HexagonBox from "../ui/HexagonBox";
 import { useStatus } from "../Auth/StatusProvider";
 
@@ -85,15 +85,15 @@ const Wrapper = styled.div`
 
   @media screen and (max-width: 430px) {
     .avatar {
-      width: 30px; /* Adjust for smaller screens */
+      width: 30px;
       height: 30px;
-      margin-right: 10px; /* Space between avatar and text */
+      margin-right: 10px;
     }
 
     .quickie-info-user {
       display: flex;
       align-items: center;
-      gap: 8px; /* Adjust space between avatar and username */
+      gap: 8px;
     }
   }
 `;
@@ -127,7 +127,7 @@ const Quickie = ({ quickie }) => {
   const [userAvatar, setUserAvatar] = useState(quickie.userAvatar || "/default-avatar.png");
   const [isModalOpen, setModalOpen] = useState(false);
   const [userStatus, setUserStatus] = useState({ isActive: false });
-  const { showActiveStatus } = useStatus();
+  const [userShowActiveStatus, setUserShowActiveStatus] = useState(true);
   const db = getFirestore();
   const auth = getAuth();
   const rtdb = getDatabase();
@@ -140,27 +140,35 @@ const Quickie = ({ quickie }) => {
     return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
   };
 
-  // Status listener effect
   useEffect(() => {
     if (!userId) return;
 
-    const statusRef = ref(rtdb, `/status/${userId}`);
-    const unsubscribe = onValue(statusRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        console.log("====>user in quickie: ",quickie.userName);
-        console.log("====>status in quickie: ",userStatus);
-        setUserStatus({
-          isActive: data.state === 'online',
-          lastChanged: data.last_changed
-        });
-      } else {
-        setUserStatus({ isActive: false });
-      }
-    });
+    const fetchUserStatus = async () => {
+      try {
+        const profileRef = doc(db, "profiles", userId);
+        const profileSnap = await getDoc(profileRef);
 
-    return () => unsubscribe();
-  }, [userId, rtdb]);
+        if (profileSnap.exists()) {
+          const profileData = profileSnap.data();
+          const showActiveStatusFromDb = profileData.showActiveStatus !== undefined ? profileData.showActiveStatus : true;
+          setUserShowActiveStatus(showActiveStatusFromDb);
+          
+          const statusRef = ref(rtdb, `/status/${userId}`);
+          const unsubscribe = onValue(statusRef, (snapshot) => {
+            const data = snapshot.val();
+            const isActive = data?.state === "online" && showActiveStatusFromDb;
+            setUserStatus({ isActive, lastChanged: data?.last_changed });
+          });
+
+          return () => unsubscribe();
+        }
+      } catch (error) {
+        console.error("Error fetching user status:", error);
+      }
+    };
+
+    fetchUserStatus();
+  }, [userId, db, rtdb]);
 
   useEffect(() => {
     const quickieRef = doc(db, "quickies", id);
@@ -209,7 +217,7 @@ const Quickie = ({ quickie }) => {
   };
 
   const handleLikeQuickie = async () => {
-    if (!currentUser){
+    if (!currentUser) {
       toast.error("You must be logged in to like posts.");
       return;
     }
@@ -230,15 +238,13 @@ const Quickie = ({ quickie }) => {
           likesCount: increment(1),
         });
   
-        // **Only create a notification if the liker is not the post owner**
         if (currentUser.uid !== postOwnerId) {
-          // Create a notification for the post owner
           const notificationsRef = collection(db, "notifications");
           await addDoc(notificationsRef, {
             type: "like",
-            quickieId: id, // The ID of the quickie that was liked
-            fromUserId: currentUser.uid, // User who liked the quickie
-            userId: postOwnerId, // Notify the post owner
+            quickieId: id,
+            fromUserId: currentUser.uid,
+            userId: postOwnerId,
             createdAt: new Date(),
             isRead: false,
           });
@@ -248,8 +254,6 @@ const Quickie = ({ quickie }) => {
       console.error("Error liking quickie: ", error);
     }
   };
-  
-  
 
   const handleBookmarkQuickie = async () => {
     if (!currentUser) {
@@ -351,7 +355,7 @@ const Quickie = ({ quickie }) => {
           className="avatar" 
           src={userAvatar} 
           alt="avatar"
-          showStatus={showActiveStatus}
+          showStatus={userShowActiveStatus}
           isActive={userStatus.isActive}
         />
       </Link>

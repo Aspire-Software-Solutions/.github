@@ -11,7 +11,6 @@ import {
 import { getDatabase, ref, onValue } from "firebase/database";
 import Loader from "../Loader";
 import Avatar from "../../styles/Avatar";
-import { useStatus } from "../Auth/StatusProvider";
 
 const Wrapper = styled.div`
   padding: 2rem;
@@ -38,7 +37,7 @@ const Wrapper = styled.div`
   }
 `;
 
-const PRESENCE_TIMEOUT = 2 * 60 * 1000; // 2 minutes in milliseconds
+const PRESENCE_TIMEOUT = 2 * 60 * 1000;
 
 const FollowersFollowing = () => {
   const { handle, type } = useParams();
@@ -47,13 +46,6 @@ const FollowersFollowing = () => {
   const [loading, setLoading] = useState(true);
   const db = getFirestore();
   const rtdb = getDatabase();
-  const { showActiveStatus } = useStatus();
-
-  const isUserActive = (lastChanged) => {
-    if (!lastChanged) return false;
-    const lastChangedTime = new Date(lastChanged).getTime();
-    return Date.now() - lastChangedTime < PRESENCE_TIMEOUT;
-  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -75,7 +67,11 @@ const FollowersFollowing = () => {
               const usersQuery = query(profilesRef, where("userId", "in", batch));
               const usersSnap = await getDocs(usersQuery);
               usersSnap.forEach((doc) => {
-                fetchedUsers.push(doc.data());
+                const userData = doc.data();
+                fetchedUsers.push({
+                  ...userData,
+                  showActiveStatus: userData.showActiveStatus !== undefined ? userData.showActiveStatus : true,
+                });
               });
             }
 
@@ -101,24 +97,29 @@ const FollowersFollowing = () => {
   useEffect(() => {
     if (!users.length) return;
 
-    const statusListeners = users.map(user => {
-      const statusRef = ref(rtdb, `/status/${user.userId}`);
-      return onValue(statusRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data) {
-          setUserStatuses(current => ({
+    const unsubscribes = [];
+
+    users.forEach((user) => {
+      if (user.showActiveStatus) {
+        const statusRef = ref(rtdb, `/status/${user.userId}`);
+        const unsubscribe = onValue(statusRef, (snapshot) => {
+          const data = snapshot.val();
+          const isActive = data?.state === "online";
+            
+          setUserStatuses((current) => ({
             ...current,
             [user.userId]: {
-              isActive: data.state === 'online',
-              lastChanged: data.last_changed
-            }
+              isActive,
+              lastChanged: data?.last_changed,
+            },
           }));
-        }
-      });
+        });
+        unsubscribes.push(unsubscribe);
+      }
     });
 
     return () => {
-      statusListeners.forEach(unsubscribe => unsubscribe());
+      unsubscribes.forEach((unsubscribe) => unsubscribe());
     };
   }, [users, rtdb]);
 
@@ -134,7 +135,7 @@ const FollowersFollowing = () => {
               <Avatar 
                 src={user.avatarUrl || "/default-avatar.png"} 
                 alt={user.handle}
-                showStatus={user.showActiveStatus || true}
+                showStatus={user.showActiveStatus}
                 isActive={userStatuses[user.userId]?.isActive || false}
               />
               <div className="user-info">
