@@ -129,8 +129,8 @@ const Wrapper = styled.nav`
     position: absolute;
     top: 130%;
     right: 0;
-    background: ${(props) => props.theme.background};
-    border: 1px solid ${(props) => props.theme.tertiaryColor};
+    background: #720000;
+    border: 1px solid #000000;
     padding: 0.5rem 1rem;
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -144,12 +144,12 @@ const Wrapper = styled.nav`
     cursor: pointer;
     background: none;
     border: none;
-    color: ${(props) => props.theme.primaryColor};
+    color: #FFFFFF;
   }
 
   .dropdown button:hover,
   .dropdown a:hover {
-    color: ${(props) => props.theme.accentColor};
+    color: #FF0000;
   }
 
   ul {
@@ -181,8 +181,8 @@ const Wrapper = styled.nav`
     position: absolute;
     top: 100%;
     left: 0;
-    background: ${(props) => props.theme.background};
-    border: 1px solid ${(props) => props.theme.tertiaryColor};
+    background: #720000;
+    border: 1px solid #000000;
     padding: 0.5rem 1rem;
     box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
     display: flex;
@@ -202,7 +202,7 @@ const Wrapper = styled.nav`
     cursor: pointer;
     background: none;
     border: none;
-    color: ${(props) => props.theme.primaryColor};
+    color: #FFFFFF;
   }
 
   .navdropdown button:hover,
@@ -404,7 +404,7 @@ const Nav = () => {
                   <NotificationIcon />
                   {unreadCount > 0 && <span style={badgeStyle}>{unreadCount}</span>}
                   </div>
-                  <span style={{ paddingLeft: unreadConversationsCount > 0 ? "20px" : "0" }}>MESSAGES</span>
+                  <span style={{ paddingLeft: unreadConversationsCount > 0 ? "20px" : "0" }}>NOTIFICATIONS</span>
                 </div>
               </NavLink>
               <NavLink activeClassName="selected" to="/conversations" onClick={() => setSidebarOpen(false)}>

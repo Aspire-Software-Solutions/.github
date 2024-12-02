@@ -113,7 +113,9 @@ const Message = ({ message, currentUserId }) => {
           </>
         )}
 
-        <small className="text-muted">
+        <small style={{
+            color: isCurrentUser ? "#d3d3d3" : "#6c757d", // Lighter grey for current user, darker grey for others
+          }}>
           {timestamp
             ? new Date(timestamp.toDate()).toLocaleString()
             : "Sending..."}

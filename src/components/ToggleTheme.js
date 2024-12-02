@@ -13,6 +13,7 @@ export const Wrapper = styled.div`
   p {
     margin-left: 0.4rem;
     margin-bottom: 0; /* Ensure margin consistency */
+    color: white;
   }
 
   &:hover p {
